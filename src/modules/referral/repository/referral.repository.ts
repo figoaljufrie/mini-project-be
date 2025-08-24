@@ -1,14 +1,14 @@
 import { prisma } from "../../../utils/prisma";
 
 export class ReferralRepository {
-  // Find user by referral code
+  //cari user lewat kode referral yg digenerate pas register:
   public async findUserByReferralCode(code: string) {
     return prisma.user.findUnique({
       where: { referralCode: code },
     });
   }
 
-  // Link referred user to referrer
+  //link orang yang pake kode referal sama orang yang kasih kode referal:
   public async linkReferral(referredUserId: number, referrerId: number) {
     return prisma.user.update({
       where: { id: referredUserId },
@@ -16,7 +16,7 @@ export class ReferralRepository {
     });
   }
 
-  // Add points to referrer and return updated user
+  //tambahin point ke orang yang kasih kode refferal:
   public async addPointsReferrer(referrerId: number, points: number) {
     return prisma.user.update({
       where: { id: referrerId },
@@ -24,7 +24,7 @@ export class ReferralRepository {
     });
   }
 
-  // Create referral coupon
+  //bikin referral-kupon:
   public async createReferralCoupon(userId: number, code: string, discountIdr: number, expiresAt: Date) {
     return prisma.coupon.create({
       data: {

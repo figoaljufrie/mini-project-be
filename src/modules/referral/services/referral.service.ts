@@ -6,21 +6,14 @@ export class ReferralService {
   private couponService = new CouponService();
 
   public async useReferralCode(referredUserId: number, referralCode: string) {
-    // 1️⃣ Log function call
-    console.log("useReferralCode called with:", {
-      referredUserId,
-      referralCode,
-    });
-
-    // 2️⃣ Find the referrer
+    //cari orang yang punya kode referral:
     const referrer = await this.referralRepository.findUserByReferralCode(
       referralCode
     );
-    console.log("Referrer found:", referrer);
 
     if (!referrer) throw new Error("Cannot find Referral Code.");
 
-    // 3️⃣ Link referred user
+    //hubungin user yang pake referral sama yang dipake referralnya:
     const linkedUser = await this.referralRepository.linkReferral(
       referredUserId,
       referrer.id
@@ -30,16 +23,14 @@ export class ReferralService {
       linkedUser
     );
 
-    // 4️⃣ Add points to referrer
+    //kasih point ke orang yang referralnya dipake:
     const points = 10000;
-    console.log(`Adding ${points} points to referrer ${referrer.id}`);
     const updatedReferrer = await this.referralRepository.addPointsReferrer(
       referrer.id,
       points
     );
-    console.log("Updated referrer after points increment:", updatedReferrer);
 
-    // 5️⃣ Create coupon for referred user
+    //bikinin kupon buat orang yang pake kode referral:
     const couponCode = Math.random()
       .toString(36)
       .substring(2, 10)
@@ -48,22 +39,12 @@ export class ReferralService {
     couponExpireAt.setMonth(couponExpireAt.getMonth() + 3);
     const discountIdr = 15000;
 
-    console.log(
-      `Creating referral coupon for user ${referredUserId} with code ${couponCode}`
-    );
     const coupon = await this.referralRepository.createReferralCoupon(
       referredUserId,
       couponCode,
       discountIdr,
       couponExpireAt
     );
-    console.log("Referral coupon created:", coupon);
-
-    // 6️⃣ Log before returning
-    console.log("Referral flow completed:", {
-      referrer: updatedReferrer,
-      coupon,
-    });
 
     return {
       message: "Referral Applied Successfully",
