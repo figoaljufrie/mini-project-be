@@ -1,14 +1,15 @@
-import { prisma } from "../../../utils/prisma";
-import { UserDTO } from "../dto/user.dto";
-import { LoginDTO } from "../dto/login.dto";
-import { UpdateUserDTO } from "../dto/update.dto";
 import bcrypt from "bcrypt";
 import { sign, SignOptions } from "jsonwebtoken";
-import dotenv from "dotenv";
+import { User } from "../../../generated/prisma";
+import { prisma } from "../../../utils/prisma";
+import { LoginDTO } from "../dto/login.dto";
+import { UpdateUserDTO } from "../dto/update.dto";
+import { UserDTO } from "../dto/user.dto";
 
 export class UserRepository {
+  //db create email:
   public async create(data: UserDTO & { referralCode?: string }) {
-    // Check if email already exists
+    // Cek kalo email udah ada:
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -17,10 +18,10 @@ export class UserRepository {
       throw new Error("User with this email address already exists");
     }
 
-    // Hash password
+    // pecahin password:
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Create user with optional referralCode
+    // Logic bikin user sama referralCode:
     const user = await prisma.user.create({
       data: {
         name: data.name,
@@ -34,11 +35,12 @@ export class UserRepository {
     return user;
   }
 
+  //db-login:
   public async login(data: LoginDTO) {
     const user = await prisma.user.findUnique({
       where: {
         //unik = email
-        email: data.email
+        email: data.email,
       },
     });
     //kalo user nggak ketemu (email)
@@ -55,7 +57,7 @@ export class UserRepository {
 
     const secretKey = process.env.JWT_SECRET_KEY!;
     const expiresIn = process.env.JWT_EXPIRES_IN!;
-    const token = this.generateToken(user, secretKey!, expiresIn)
+    const token = this.generateToken(user, secretKey!, expiresIn);
     return {
       accessToken: token,
       user: {
@@ -63,8 +65,8 @@ export class UserRepository {
         name: user.name,
         email: user.email,
         username: user.username,
-        role: user.role
-      }
+        role: user.role,
+      },
     };
   }
   public async getAll() {
@@ -98,13 +100,7 @@ export class UserRepository {
   }
 
   public async updateUser(id: number, data: UpdateUserDTO) {
-
     //if password is being changed, hash it:
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10)
-    }
-
-
     const updatedUser = await prisma.user.update({
       where: { id },
       data,
@@ -114,8 +110,32 @@ export class UserRepository {
 
   public async hardDeleteUser(id: number) {
     return prisma.user.delete({
-      where: {id}
-    })
+      where: { id },
+    });
   }
 
+  //cari via email (buat send link reset password):
+
+  public async findByEmail(email: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+  }
+
+  //buat update password:
+  public async updatePassword(
+    userId: number,
+    hashedPassword: string
+  ): Promise<User | null> {
+    return prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+  }
 }

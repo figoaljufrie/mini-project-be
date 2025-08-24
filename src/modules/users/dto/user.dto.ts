@@ -1,4 +1,4 @@
-import { User as PrismaUserRole } from "../../../generated/prisma";
+import { $Enums, User as PrismaUserRole } from "../../../generated/prisma";
 
 export { PrismaUserRole };
 
@@ -8,4 +8,5 @@ export interface UserDTO {
  username: string,
  password: string,
  referralCode?: string;
+ role?: $Enums.Role
 }

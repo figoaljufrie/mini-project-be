@@ -1,47 +1,55 @@
-import { verify } from "jsonwebtoken";
+import bcrypt, { hash } from "bcrypt";
+import { sign, verify } from "jsonwebtoken";
+import { $Enums } from "../../../generated/prisma";
+import { MailService } from "../../mail/mail.service";
+import { ReferralService } from "../../referral/services/referral.service";
 import { LoginDTO } from "../dto/login.dto";
 import { UpdateUserDTO } from "../dto/update.dto";
 import { UserDTO } from "../dto/user.dto";
 import { UserRepository } from "../repository/user.repository";
-import { ReferralService } from "../../referral/services/referral.service";
 
 interface JwtPayload {
   id: number;
   email: string;
-  username?: string;
+  // username?: string;
 }
 
 export class UserService {
   userRepository: UserRepository;
+  mailService: MailService;
 
   constructor() {
     this.userRepository = new UserRepository();
+    this.mailService = new MailService();
   }
-  public async create(data: UserDTO & { referralCode?: string }) {
-    console.log("Incoming user data:", data);
 
-    // Generate referral code for the new user
+  //Bikin user baru:
+  public async create(data: UserDTO & { referralCode?: string }) {
+    //bikin user-role logic buat pisahin authorization pas register:
+    const role: $Enums.Role = data.role ?? "CUSTOMER";
+    if (!["CUSTOMER", "ORGANIZER"].includes(role)) {
+      throw new Error("Invalid role");
+    }
+
+    //bikin kode referall:
     const newReferralCode = Math.random()
       .toString(36)
       .substring(2, 10)
       .toUpperCase();
-    console.log("Generated referral code for new user:", newReferralCode);
 
-    // Create user with the new referral code
+    //bikin user includde kode referal:
     const user = await this.userRepository.create({
-      ...data, // spread existing user data
-      referralCode: newReferralCode, // add the generated referral code
+      ...data,
+      role,
+      referralCode: newReferralCode,
     });
-    console.log("User created:", user);
 
     if (!user) {
       throw new Error("Failed to Register!");
     }
 
-    // If the new user entered another user's referral code
+    // kalo user baru pake kodde referal:
     if (data.referralCode) {
-      console.log("Referral code provided by user:", data.referralCode);
-
       try {
         const referralService = new ReferralService();
         const referralResult = await referralService.useReferralCode(
@@ -104,8 +112,12 @@ export class UserService {
     }
   }
 
+  //update user:
   public async updateUser(id: number, data: UpdateUserDTO) {
     const user = await this.userRepository.updateUser(id, data);
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
 
     if (!user) {
       throw new Error("Failed to Update User");
@@ -113,8 +125,43 @@ export class UserService {
     return user;
   }
 
+  //business-logic hard-delete:
   public async hardDelete(id: number) {
     const user = await this.userRepository.hardDeleteUser(id);
     return user;
+  }
+
+  //business-logic lupa password &/ reset pass:
+
+  public async forgotPassword(email: string) {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new Error("Invalid email address");
+
+    const secret = process.env.JWT_SECRET_KEY;
+    if (!secret) throw new Error("JWT secret key not set");
+
+    // Generate token for password reset
+    const token = sign({ id: user.id }, secret, { expiresIn: "15m" });
+    const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+    // Send reset email
+    await this.mailService.sendMail(
+      email,
+      "Reset your password",
+      "reset-password",
+      { resetLink, token }
+    );
+
+    return { message: "Reset email sent successfully" };
+  }
+
+  // Reset Password - change password in DB
+  public async resetPassword(userId: number, newPassword: string) {
+    if (!userId) throw new Error("User ID is required");
+
+    const hashedPassword = await hash(newPassword, 10);
+    await this.userRepository.updatePassword(userId, hashedPassword);
+
+    return { message: "Password reset successfully" };
   }
 }

@@ -3,7 +3,6 @@ import { handleError } from "../../../helpers/handleError";
 import { handleSuccess } from "../../../helpers/handleSuccess";
 import { LoginDTO } from "../dto/login.dto";
 import { UpdateUserDTO } from "../dto/update.dto";
-import { UserDTO } from "../dto/user.dto";
 import { UserService } from "../services/user.service";
 
 export class UserController {
@@ -19,17 +18,19 @@ export class UserController {
     this.updateUser = this.updateUser.bind(this);
     this.hardDelete = this.hardDelete.bind(this);
     this.validateToken = this.validateToken.bind(this);
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
   }
 
   public async create(req: Request, res: Response) {
-  try {
-    // pass the whole body including referralCode
-    const result = await this.userService.create(req.body);
-    handleSuccess(res, "Successfully Created a new user", result, 200);
-  } catch (error) {
-    handleError(res, "Failed to Create User", 500, (error as Error).message);
+    try {
+      // pass the whole body including referralCode
+      const result = await this.userService.create(req.body);
+      handleSuccess(res, "Successfully Created a new user", result, 200);
+    } catch (error) {
+      handleError(res, "Failed to Create User", 500, (error as Error).message);
+    }
   }
-}
 
   public async login(req: Request, res: Response) {
     try {
@@ -150,6 +151,53 @@ export class UserController {
         "Failed to delete user",
         500,
         (error as Error).message
+      );
+    }
+  }
+  public async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return handleError(res, "Email is required", 400, "Bad Request");
+      }
+
+      const result = await this.userService.forgotPassword(email);
+      return handleSuccess(res, "Email sent successfully", result, 200);
+    } catch (err) {
+      return handleError(
+        res,
+        "Failed to send reset email",
+        400,
+        (err as Error).message
+      );
+    }
+  }
+
+  // Reset Password
+  public async resetPassword(req: Request, res: Response) {
+    try {
+      // User ID is set by JwtMiddleware after token verification
+      const authUser = res.locals.user;
+      if (!authUser || !authUser.id) {
+        return handleError(res, "Invalid token payload", 401, "Unauthorized");
+      }
+
+      const { password } = req.body;
+      if (!password) {
+        return handleError(res, "New Password is required", 400, "Bad Request");
+      }
+
+      const result = await this.userService.resetPassword(
+        authUser.id,
+        password
+      );
+      return handleSuccess(res, "Password reset successfully", result, 200);
+    } catch (err) {
+      return handleError(
+        res,
+        "Failed to reset password",
+        400,
+        (err as Error).message
       );
     }
   }
