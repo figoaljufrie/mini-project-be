@@ -25,6 +25,7 @@ export class CouponRepository {
     return coupon;
   }
 
+  //nyari kupon dari kode:
   public async findCouponByCode(code: string) {
     const coupon = await prisma.coupon.findUnique({
       where: {
@@ -79,6 +80,7 @@ export class CouponRepository {
     return { message: "Coupon Redeemed Successfully!" };
   }
 
+  //nyari kupon yang disediain organizer:
   public async getAll() {
     const coupons = await prisma.coupon.findMany();
     return coupons;

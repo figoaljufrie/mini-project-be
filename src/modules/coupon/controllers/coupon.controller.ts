@@ -15,6 +15,7 @@ export class CouponController {
     this.getAllCoupon = this.getAllCoupon.bind(this);
   }
 
+  //http request buat create kupon:
   public async createCoupon(req: Request, res: Response) {
     try {
       const organizerId = Number((req as any).user.id); //organizer dari auth
@@ -31,6 +32,7 @@ export class CouponController {
     }
   }
 
+  //http request buat redeem kupon:
   public async redeemCoupon(req: Request, res: Response) {
     try {
       const data: RedeemCouponDto = req.body;
@@ -46,6 +48,7 @@ export class CouponController {
     }
   }
 
+  //http request buat ambil semua data coupon:
   public async getAllCoupon(req: Request, res: Response) {
     try {
       const result = await this.couponService.getAllCoupons();
