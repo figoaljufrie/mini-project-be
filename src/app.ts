@@ -1,8 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, { Application } from 'express'
 import cors from 'cors'
 import { UserRouter } from './modules/users/routers/user.router'
 import { CouponRouter } from './modules/coupon/routers/coupon.router'
 // import { ReferralRouter } from './modules/referral/routers/referral.router'
+
 
 export class App {
   private app: Application
@@ -20,7 +24,7 @@ export class App {
 
   public initializeRoutes() {
     this.app.use('/api', new UserRouter().getRouter())
-    this.app.use("/api", new CouponRouter().getRouter())
+    // this.app.use("/api", new CouponRouter().getRouter())
     // this.app.use("/api", new ReferralRouter().getRouter())
   }
 
