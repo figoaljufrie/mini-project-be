@@ -10,13 +10,20 @@ export class CouponService {
   }
 
   //organizer kalo mau bikin kcoupon:
-  public async createCoupon(data: CreateCouponDto, organizerId: number) {
-    const coupon = await this.couponRepository.createCoupon(data, organizerId);
-    return coupon;
+  public async createOrganizerCoupon(
+    data: CreateCouponDto,
+    organizerId: number
+  ) {
+    if (!organizerId) {
+      throw new Error(
+        "ORganizer ID is required to create an organizer coupon."
+      );
+    }
+    return this.couponRepository.createOrganizerCoupon(data, organizerId);
   }
 
   //bikin referal coupon buat user baru:
-  public async generateReferralCoupon(
+  public async createReferralCoupon(
     userId: number,
     discountIdr: number,
     code: string
@@ -24,16 +31,16 @@ export class CouponService {
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 3);
 
-    const coupon = await this.couponRepository.createCoupon(
+    const coupon = await this.couponRepository.createReferralCoupon(
       {
         code,
         discountIdr,
         type: "REFERRAL",
         expiresAt,
       },
-      undefined, // no organizer
-      userId // link ke user baru
+      userId
     );
+
     return coupon;
   }
 
@@ -55,12 +62,12 @@ export class CouponService {
     if (coupon.type === "REFERRAL" && coupon.status === "USED") {
       throw new Error("Coupon has been used.");
     }
-    return await this.couponRepository.redeemCode(dto);
+    return await this.couponRepository.redeemCode(dto.code, dto.userId);
   }
 
   //Get all coupons (buat test atau dashboard).
   public async getAllCoupons() {
     const coupons = await this.couponRepository.getAll();
-    return coupons
+    return coupons;
   }
 }

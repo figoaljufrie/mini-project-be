@@ -24,7 +24,7 @@ export class App {
 
   public initializeRoutes() {
     this.app.use('/api', new UserRouter().getRouter())
-    // this.app.use("/api", new CouponRouter().getRouter())
+    this.app.use("/api", new CouponRouter().getRouter())
     // this.app.use("/api", new ReferralRouter().getRouter())
   }
 

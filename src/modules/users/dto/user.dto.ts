@@ -7,6 +7,6 @@ export interface UserDTO {
  email: string,
  username: string,
  password: string,
- referralCode?: string;
+ referralCode?: string | null;
  role?: $Enums.Role
 }

@@ -17,10 +17,12 @@ interface JwtPayload {
 export class UserService {
   userRepository: UserRepository;
   mailService: MailService;
+  referralService: ReferralService;
 
   constructor() {
     this.userRepository = new UserRepository();
     this.mailService = new MailService();
+    this.referralService = new ReferralService();
   }
 
   //Bikin user baru:
@@ -48,15 +50,16 @@ export class UserService {
       throw new Error("Failed to Register!");
     }
 
+    // let referredById: number | null = null;
     // kalo user baru pake kodde referal:
     if (data.referralCode) {
       try {
-        const referralService = new ReferralService();
-        const referralResult = await referralService.useReferralCode(
+        const referralResult = await this.referralService.useReferralCode(
           user.id,
           data.referralCode
         );
-        console.log("Referral service result:", referralResult);
+        user.referredById = referralResult.referrer.id;
+        // console.log("Referral service result:", referralResult);
       } catch (error) {
         console.warn("Referral Code Failed:", (error as Error).message);
       }
@@ -64,6 +67,7 @@ export class UserService {
       console.log("No referral code provided by user.");
     }
 
+    // const updateUser = await this.userRepository.findById(user.id)
     return user;
   }
 

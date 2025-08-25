@@ -15,25 +15,4 @@ export class ReferralRepository {
       data: { referredById: referrerId },
     });
   }
-
-  //tambahin point ke orang yang kasih kode refferal:
-  public async addPointsReferrer(referrerId: number, points: number) {
-    return prisma.user.update({
-      where: { id: referrerId },
-      data: { points: { increment: points } },
-    });
-  }
-
-  //bikin referral-kupon:
-  public async createReferralCoupon(userId: number, code: string, discountIdr: number, expiresAt: Date) {
-    return prisma.coupon.create({
-      data: {
-        code,
-        discountIdr,
-        type: "REFERRAL",
-        userId,
-        expiresAt,
-      },
-    });
-  }
 }

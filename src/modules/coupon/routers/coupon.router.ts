@@ -15,25 +15,28 @@ export class CouponRouter {
   }
 
   private initializeRoutes() {
-    //bikin coupon, pake authenticate & rbac buat organizer only:
+    // bikin kupon buat organizer:
     this.router.post(
-      "/coupon/create-coupon",
+      "/coupon/create",
       this.authMiddleware.authenticate,
       this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
-      this.couponController.createCoupon
+      this.couponController.createOrganizerCoupon
     );
-    //buat redeem kupon:
+
+    // Bikin kupon buat user:
     this.router.post(
-      "/coupon/redeem-coupon",
+      "/coupon/redeem",
+      this.authMiddleware.authenticate, // ⬅️ usually customer must be logged in
+      this.rbacMiddleware.checkRole([$Enums.Role.CUSTOMER]), // restrict to customer
       this.couponController.redeemCoupon
     );
 
-    //ambil semua data coupon, pake authenticate & rbac buat organizer only:
+    // Get All coupon buat organizer:
     this.router.get(
       "/coupon",
       this.authMiddleware.authenticate,
       this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
-      this.couponController.getAllCoupon
+      this.couponController.getAllCoupons
     );
   }
 
