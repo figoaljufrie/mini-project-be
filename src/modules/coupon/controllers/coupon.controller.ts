@@ -6,57 +6,64 @@ import { CreateCouponDto } from "../dto/coupon.dto";
 import { RedeemCouponDto } from "../dto/coupon-redeem.dto";
 
 export class CouponController {
-  couponService: CouponService;
+  private couponService: CouponService;
 
   constructor() {
     this.couponService = new CouponService();
-    this.createCoupon = this.createCoupon.bind(this);
+    this.createOrganizerCoupon = this.createOrganizerCoupon.bind(this);
     this.redeemCoupon = this.redeemCoupon.bind(this);
-    this.getAllCoupon = this.getAllCoupon.bind(this);
+    this.getAllCoupons = this.getAllCoupons.bind(this);
   }
 
-  //http request buat create kupon:
-  public async createCoupon(req: Request, res: Response) {
+  // http request buat create kupon (organizer only)
+  public async createOrganizerCoupon(req: Request, res: Response) {
     try {
-      const organizerId = Number((req as any).user.id); //organizer dari auth
+      const organizerId = Number((req as any).user.id); // organizer dari auth middleware
       const data: CreateCouponDto = req.body;
-      const result = await this.couponService.createCoupon(data, organizerId);
-      handleSuccess(res, "Successfully create coupon!", result, 200);
+
+      const result = await this.couponService.createOrganizerCoupon(
+        data,
+        organizerId
+      );
+
+      handleSuccess(res, "Successfully created organizer coupon!", result, 201);
     } catch (error) {
       handleError(
         res,
-        "Failed to generate Coupon.",
+        "Failed to create coupon.",
         500,
         (error as Error).message
       );
     }
   }
 
-  //http request buat redeem kupon:
+  // http request buat redeem kupon:
   public async redeemCoupon(req: Request, res: Response) {
     try {
       const data: RedeemCouponDto = req.body;
       const result = await this.couponService.redeemCoupon(data);
-      handleSuccess(res, "Successfully Redeem Coupon!", result, 200);
+
+      handleSuccess(res, "Successfully redeemed coupon!", result, 200);
     } catch (error) {
       handleError(
         res,
-        "Failed to Redeem Coupon.",
-        500,
+        "Failed to redeem coupon.",
+        400,
         (error as Error).message
       );
     }
   }
 
-  //http request buat ambil semua data coupon:
-  public async getAllCoupon(req: Request, res: Response) {
+  // http request buat ambil semua data coupon:
+  public async getAllCoupons(req: Request, res: Response) {
     try {
       const result = await this.couponService.getAllCoupons();
-      handleSuccess(res, "Successfully Get All Coupons!", result, 200);
+
+      handleSuccess(res, "Successfully retrieved all coupons!", result, 200);
     } catch (error) {
       handleError(
         res,
-        "Failed to Get All Coupon",
+        "Failed to get coupons",
         500,
         (error as Error).message
       );

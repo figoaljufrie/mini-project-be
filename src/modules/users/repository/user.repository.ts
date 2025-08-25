@@ -21,6 +21,17 @@ export class UserRepository {
     // pecahin password:
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    //cek kalo username udah ada:
+    const usernameUser = await prisma.user.findUnique({
+      where: {
+        username: data.username,
+      },
+    });
+
+    if (usernameUser) {
+      throw new Error("An account with this username is alrady exist.");
+    }
+
     // Logic bikin user sama referralCode:
     const user = await prisma.user.create({
       data: {
@@ -31,6 +42,7 @@ export class UserRepository {
         referralCode: data.referralCode ?? null, // use generated referral code if provided
       },
     });
+    console.log(user);
 
     return user;
   }
@@ -90,6 +102,7 @@ export class UserRepository {
   public async findById(id: number) {
     return prisma.user.findUnique({
       where: { id },
+      include: { referredBy: true},
     });
   }
 

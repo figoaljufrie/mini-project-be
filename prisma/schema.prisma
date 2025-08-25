@@ -26,23 +26,24 @@ enum CouponType {
 }
 
 model User {
-  id           Int    @id @default(autoincrement())
-  name         String
-  email        String @unique
-  username     String @unique
-  password     String
-  role         Role   @default(CUSTOMER)
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  username String @unique
+  password String
+  role     Role   @default(CUSTOMER)
 
   referralCode String? @unique
   referredById Int?
-  referredBy   User?  @relation("UserReferrals", fields: [referredById], references: [id])
-  referees     User[] @relation("UserReferrals")
+  referredBy   User?   @relation("UserReferrals", fields: [referredById], references: [id])
+  referees     User[]  @relation("UserReferrals")
 
-  points           Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  coupons          Coupon[]
-  organizerCoupons Coupon[] @relation("OrganizerCoupons")
+  points             Int                 @default(0)
+  pointsTransactions PointTransactions[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  coupons            Coupon[]
+  organizerCoupons   Coupon[]            @relation("OrganizerCoupons")
 }
 
 model Coupon {
@@ -63,6 +64,16 @@ model Coupon {
   quantity    Int?
   organizerId Int?
   organizer   User? @relation("OrganizerCoupons", fields: [organizerId], references: [id])
+}
+
+model PointTransactions {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum CouponStatus {
