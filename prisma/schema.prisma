@@ -44,6 +44,7 @@ model User {
   updatedAt          DateTime            @updatedAt
   coupons            Coupon[]
   organizerCoupons   Coupon[]            @relation("OrganizerCoupons")
+  Transactions       Transaction[]
 }
 
 model Coupon {
@@ -63,7 +64,10 @@ model Coupon {
   // organizer-specific:
   quantity    Int?
   organizerId Int?
-  organizer   User? @relation("OrganizerCoupons", fields: [organizerId], references: [id])
+
+  transactions Transaction[]
+
+  organizer User? @relation("OrganizerCoupons", fields: [organizerId], references: [id])
 }
 
 model PointTransactions {
@@ -76,8 +80,47 @@ model PointTransactions {
   createdAt DateTime @default(now())
 }
 
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  eventId   Int
+  status    TxStatus
+  totalIdr  Int
+  createdAt DateTime @default(now())
+
+  couponId     Int?
+  coupon       Coupon? @relation(fields: [couponId], references: [id])
+  event        Event?  @relation(fields: [eventId], references: [eventId])
+  
+
+  @@index([eventId, status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Event {
+  eventId     Int      @id @default(autoincrement())
+  organizerId Int
+  title       String
+  startsAt    DateTime
+  quantity    Int
+  priceIdr    Int
+  createdAt   DateTime @default(now())
+
+  transactions Transaction[]
+}
+
 enum CouponStatus {
   AVAILABLE
   USED
   EXPIRED
+}
+
+enum TxStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_ADMIN_CONFIRMATION
+  DONE
+  REJECTED
+  EXPIRED
+  CANCELED
 }

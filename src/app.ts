@@ -6,6 +6,7 @@ import cors from 'cors'
 import { UserRouter } from './modules/users/routers/user.router'
 import { CouponRouter } from './modules/coupon/routers/coupon.router'
 // import { ReferralRouter } from './modules/referral/routers/referral.router'
+import { DashboardRouter } from "./modules/dashboard/router/dashboard.router";
 
 
 export class App {
@@ -25,6 +26,7 @@ export class App {
   public initializeRoutes() {
     this.app.use('/api', new UserRouter().getRouter())
     this.app.use("/api", new CouponRouter().getRouter())
+    this.app.use("/api", new DashboardRouter().getRouter())
     // this.app.use("/api", new ReferralRouter().getRouter())
   }
 
