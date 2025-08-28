@@ -12,8 +12,10 @@ export class UserController {
     this.userService = new UserService();
 
     this.create = this.create.bind(this);
+    this.createOrganizer = this.createOrganizer.bind(this);
     this.login = this.login.bind(this);
     this.getAll = this.getAll.bind(this);
+    this.findById = this.findById.bind(this);
     this.getByUsername = this.getByUsername.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.hardDelete = this.hardDelete.bind(this);
@@ -26,9 +28,38 @@ export class UserController {
     try {
       // pass the whole body including referralCode
       const result = await this.userService.create(req.body);
-      handleSuccess(res, "Successfully Created a new user", result, 200);
+      const { password, ...safeUser } = result;
+      handleSuccess(res, "Successfully Created a new user", safeUser, 200);
     } catch (error) {
       handleError(res, "Failed to Create User", 500, (error as Error).message);
+    }
+  }
+
+  //create user buat role Organizer:
+  public async createOrganizer(req: Request, res: Response) {
+    try {
+      const { name, email, username, password } = req.body;
+
+      const organizer = await this.userService.createOrganizer({
+        name,
+        email,
+        username,
+        password,
+      });
+      const { password: _, ...safeOrganizer } = organizer;
+      handleSuccess(
+        res,
+        "Successfully Created a new Organizer.",
+        safeOrganizer,
+        200
+      );
+    } catch (error) {
+      handleError(
+        res,
+        "Failed to Create Organizer",
+        500,
+        (error as Error).message
+      );
     }
   }
 
@@ -55,6 +86,18 @@ export class UserController {
       );
     }
   }
+
+  //cari lewat id:
+  public findById = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = await this.userService.findById(Number(id));
+
+      handleSuccess(res, "User fetched successfully", user, 200);
+    } catch (error) {
+      handleError(res, "Failed to fetch user", 404, (error as Error).message);
+    }
+  };
 
   public async getByUsername(req: Request, res: Response) {
     try {
@@ -121,8 +164,9 @@ export class UserController {
       const data: UpdateUserDTO = req.body; // body should match DTO
 
       const result = await this.userService.updateUser(userId, data);
+      const { password, ...safeUser } = result;
 
-      return handleSuccess(res, "User updated successfully", result, 200);
+      return handleSuccess(res, "User updated successfully", safeUser, 200);
     } catch (error) {
       return handleError(
         res,
@@ -143,8 +187,9 @@ export class UserController {
       }
 
       const result = await this.userService.hardDelete(userId);
+      const { password, ...safeUser } = result;
 
-      return handleSuccess(res, "User deleted successfully", result, 200);
+      return handleSuccess(res, "User deleted successfully", safeUser, 200);
     } catch (error) {
       return handleError(
         res,

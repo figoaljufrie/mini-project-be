@@ -21,6 +21,12 @@ export class UserRouter {
     // Auth routes
     //regist aman
     this.router.post("/auth/register", this.userController.create);
+
+    this.router.post(
+      "/organizer/register",
+      this.userController.createOrganizer
+    );
+
     //login aman
     this.router.post("/auth/login", this.userController.login);
 
@@ -32,8 +38,21 @@ export class UserRouter {
       this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
       this.userController.getAll
     );
+
+    this.router.get(
+      "/users/:id",
+      this.authMiddleware.authenticate,
+      this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
+      this.userController.findById
+    );
+
     //get by username aman
-    this.router.get("/users/:username", this.userController.getByUsername); // get user by username
+    this.router.get(
+      "/users/:username",
+      this.authMiddleware.authenticate,
+      this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
+      this.userController.getByUsername
+    );
 
     //update user aman
     this.router.patch("/users/:id", this.userController.updateUser); // update user
