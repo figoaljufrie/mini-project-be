@@ -71,6 +71,25 @@ export class UserService {
     return user;
   }
 
+  //bikin service create organizer:
+  public async createOrganizer(data: UserDTO) {
+    // check email
+    const existingUser = await this.userRepository.findByEmail(data.email);
+    if (existingUser) throw new Error("Email already exists");
+
+    const existingUsername = await this.userRepository.getByUsername(
+      data.username
+    );
+    if (existingUsername) throw new Error("Username already exists");
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    return this.userRepository.createOrganizer({
+      ...data,
+      password: hashedPassword,
+    });
+  }
+
   public async login(data: LoginDTO) {
     const user = await this.userRepository.login(data);
 
@@ -83,7 +102,14 @@ export class UserService {
   }
 
   public async getAll() {
-    const user = await this.userRepository.getAll();
+    const users = await this.userRepository.getAll();
+    return users.map(({ password, ...safeUser }) => safeUser);
+  }
+
+  //cari lewat id:
+  public async findById(id: number) {
+    const user = await this.userRepository.findById(id);
+    if (!user) throw new Error("User not found");
     return user;
   }
 
@@ -110,7 +136,9 @@ export class UserService {
       const user = await this.userRepository.findById(decoded.id);
 
       if (!user) throw new Error("User not found");
-      return user;
+
+      const { password, ...safeUser } = user;
+      return safeUser;
     } catch (err) {
       throw new Error("Invalid token: " + (err as Error).message);
     }
@@ -118,14 +146,16 @@ export class UserService {
 
   //update user:
   public async updateUser(id: number, data: UpdateUserDTO) {
-    const user = await this.userRepository.updateUser(id, data);
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
-    }
+    const updateData: any = {};
+    if (data.name) updateData.name = data.name;
+    if (data.email) updateData.email = data.email;
+    if (data.username) updateData.username = data.username;
+    if (data.password)
+      updateData.password = await bcrypt.hash(data.password, 10);
 
-    if (!user) {
-      throw new Error("Failed to Update User");
-    }
+    const user = await this.userRepository.updateUser(id, updateData);
+    if (!user) throw new Error("Failed to Update User");
+
     return user;
   }
 
@@ -145,7 +175,11 @@ export class UserService {
     if (!secret) throw new Error("JWT secret key not set");
 
     // Generate token for password reset
-    const token = sign({ id: user.id }, secret, { expiresIn: "15m" });
+    const token = sign(
+      { id: user.id, updatedAt: user.updatedAt.getTime() },
+      secret,
+      { expiresIn: "15m" }
+    );
     const resetLink = `http://localhost:3000/reset-password/${token}`;
 
     // Send reset email

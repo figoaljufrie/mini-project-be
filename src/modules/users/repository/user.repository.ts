@@ -47,6 +47,19 @@ export class UserRepository {
     return user;
   }
 
+  //bikin user role (ORGANIZER):
+  public async createOrganizer(data: UserDTO & { password: string }) {
+    return prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        username: data.username,
+        password: data.password,
+        role: "ORGANIZER" as const,
+      },
+    });
+  }
+
   //db-login:
   public async login(data: LoginDTO) {
     const user = await prisma.user.findUnique({
@@ -102,7 +115,7 @@ export class UserRepository {
   public async findById(id: number) {
     return prisma.user.findUnique({
       where: { id },
-      include: { referredBy: true},
+      include: { referredBy: true },
     });
   }
 
