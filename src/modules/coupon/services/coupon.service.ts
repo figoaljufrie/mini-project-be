@@ -65,9 +65,13 @@ export class CouponService {
     return await this.couponRepository.redeemCode(dto.code, dto.userId);
   }
 
-  //Get all coupons (buat test atau dashboard).
-  public async getAllCoupons() {
-    const coupons = await this.couponRepository.getAll();
-    return coupons;
+  // Get all coupons created by an organizer
+  public async getOrganizerCoupons(organizerId: number) {
+    return this.couponRepository.getAllOrganizerCoupons(organizerId);
+  }
+
+  // Get all coupons that belong to a customer
+  public async getUserCoupons(userId: number) {
+    return this.couponRepository.getUserCoupons(userId);
   }
 }
