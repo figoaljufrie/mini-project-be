@@ -12,7 +12,8 @@ export class CouponController {
     this.couponService = new CouponService();
     this.createOrganizerCoupon = this.createOrganizerCoupon.bind(this);
     this.redeemCoupon = this.redeemCoupon.bind(this);
-    this.getAllCoupons = this.getAllCoupons.bind(this);
+    this.getUserCoupons = this.getUserCoupons.bind(this);
+    this.getOrganizerCoupons = this.getOrganizerCoupons.bind(this);
   }
 
   // http request buat create kupon (organizer only)
@@ -54,16 +55,37 @@ export class CouponController {
     }
   }
 
-  // http request buat ambil semua data coupon:
-  public async getAllCoupons(req: Request, res: Response) {
+  // Organizer coupons
+  public async getOrganizerCoupons(req: Request, res: Response) {
     try {
-      const result = await this.couponService.getAllCoupons();
-
-      handleSuccess(res, "Successfully retrieved all coupons!", result, 200);
+      const organizerId = Number((req as any).user.id);
+      const result = await this.couponService.getOrganizerCoupons(organizerId);
+      handleSuccess(
+        res,
+        "Successfully retrieved organizer coupons!",
+        result,
+        200
+      );
     } catch (error) {
       handleError(
         res,
-        "Failed to get coupons",
+        "Failed to get organizer coupons",
+        500,
+        (error as Error).message
+      );
+    }
+  }
+
+  // Customer coupons
+  public async getUserCoupons(req: Request, res: Response) {
+    try {
+      const userId = Number((req as any).user.id);
+      const result = await this.couponService.getUserCoupons(userId);
+      handleSuccess(res, "Successfully retrieved user coupons!", result, 200);
+    } catch (error) {
+      handleError(
+        res,
+        "Failed to get user coupons",
         500,
         (error as Error).message
       );
