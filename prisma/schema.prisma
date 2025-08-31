@@ -45,6 +45,8 @@ model User {
   coupons            Coupon[]
   organizerCoupons   Coupon[]            @relation("OrganizerCoupons")
   Transactions       Transaction[]
+  events             Event[]             // events yang dibuat oleh organizer
+  reviews            Review[]            // reviews yang dibuat oleh user
 }
 
 model Coupon {
@@ -99,15 +101,47 @@ model Transaction {
 }
 
 model Event {
-  eventId     Int      @id @default(autoincrement())
-  organizerId Int
-  title       String
-  startsAt    DateTime
-  quantity    Int
-  priceIdr    Int
-  createdAt   DateTime @default(now())
+  eventId       Int          @id @default(autoincrement())
+  organizerId   Int
+  title         String
+  category      String
+  location      String
+  startsAt      DateTime
+  endsAt        DateTime
+  quantity      Int
+  priceIdr      Int
+  isFree        Boolean      @default(false)
+  description   String
+  ticketTypes   String?      // misalnya VIP, Regular, dsb.
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  transactions Transaction[]
+  organizer     User         @relation(fields: [organizerId], references: [id])
+  transactions  Transaction[]
+  promotions    Promotion[]
+  reviews       Review[]
+}
+
+model Promotion {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  discount  Int
+  startDate DateTime
+  endDate   DateTime
+
+  event     Event    @relation(fields: [eventId], references: [eventId])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  rating    Int      // 1-5 stars
+  comment   String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [eventId])
+  user  User  @relation(fields: [userId], references: [id])
 }
 
 enum CouponStatus {
@@ -124,3 +158,4 @@ enum TxStatus {
   EXPIRED
   CANCELED
 }
+

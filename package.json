@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
+    "build:copy": "tsc && xcopy src\\generated dist\\generated /E /I /Y",
     "start": "node dist/index.js",
+    "start:build": "npm run build:copy && node dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:generate": "prisma generate",

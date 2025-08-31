@@ -32,3 +32,25 @@ export class AuthMiddleware {
     }
   }
 }
+
+// Export function untuk digunakan di router
+export const authMiddleware = new AuthMiddleware().authenticate;
+
+// Middleware untuk memastikan user adalah organizer
+export const organizerOnly = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = (req as any).user;
+    
+    if (!user) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    
+    if (user.role !== 'ORGANIZER') {
+      return res.status(403).json({ message: "Access denied. Organizer role required." });
+    }
+    
+    next();
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
