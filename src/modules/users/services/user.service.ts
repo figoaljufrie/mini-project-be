@@ -106,6 +106,11 @@ export class UserService {
     return users.map(({ password, ...safeUser }) => safeUser);
   }
 
+  //buat get profile sendiri:
+  public async getMe(userId: number) {
+    return this.userRepository.getMe(userId);
+  }
+
   //cari lewat id:
   public async findById(id: number) {
     const user = await this.userRepository.findById(id);
@@ -201,5 +206,27 @@ export class UserService {
     await this.userRepository.updatePassword(userId, hashedPassword);
 
     return { message: "Password reset successfully" };
+  }
+
+  // user.service.ts (add this method inside UserService)
+  public async updatePasswordWithCurrent(
+    userId: number,
+    currentPassword: string,
+    newPassword: string
+  ) {
+    if (!currentPassword || !newPassword) {
+      throw new Error("Both current and new passwords are required");
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentValid) throw new Error("Current password is incorrect");
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.updatePassword(userId, hashedPassword);
+
+    return { message: "Password updated successfully" };
   }
 }

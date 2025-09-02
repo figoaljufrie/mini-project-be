@@ -60,6 +60,7 @@ export class CouponController {
     try {
       const organizerId = Number((req as any).user.id);
       const result = await this.couponService.getOrganizerCoupons(organizerId);
+
       handleSuccess(
         res,
         "Successfully retrieved organizer coupons!",
@@ -67,12 +68,7 @@ export class CouponController {
         200
       );
     } catch (error) {
-      handleError(
-        res,
-        "Failed to get organizer coupons",
-        500,
-        (error as Error).message
-      );
+      handleError(res, "Failed to get organizer coupons", 500, (error as Error).message);
     }
   }
 

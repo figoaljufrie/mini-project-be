@@ -1,39 +1,43 @@
 // Import Prisma client untuk akses database
 import { prisma } from "../../../utils/prisma";
+import { EventRepository, EventWithRelations, PaginatedResponse } from "../repository/event.repository";
 
 // Interface untuk parameter pencarian event
 interface GetEventsParams {
-  category?: string;        // Filter berdasarkan kategori event (misal: Music, Sports, Business)
-  location?: string;        // Filter berdasarkan lokasi event
-  searchQuery?: string;     // Query pencarian untuk judul event
+  category?: string; // Filter berdasarkan kategori event (misal: Music, Sports, Business)
+  location?: string; // Filter berdasarkan lokasi event
+  searchQuery?: string; // Query pencarian untuk judul event
+  upcomingOnly?: boolean; // Hanya event yang akan datang
 }
 
 // Interface untuk parameter pembuatan event baru
 interface CreateEventParams {
-  title: string;            // Judul event
-  category: string;         // Kategori event
-  location: string;         // Lokasi event
-  priceIdr: number;         // Harga tiket dalam IDR
-  startsAt: string | Date;  // Waktu mulai event
-  endsAt: string | Date;    // Waktu selesai event
-  quantity: number;         // Jumlah tiket yang tersedia
-  description: string;      // Deskripsi detail event
-  ticketTypes: string;      // Jenis tiket (VIP, Regular, dll) - string tunggal sesuai schema
-  isFree: boolean;          // Apakah event gratis atau berbayar
-  organizerId: number;      // ID user yang membuat event (organizer)
+  title: string; // Judul event
+  category: string; // Kategori event
+  location: string; // Lokasi event
+  priceIdr: number; // Harga tiket dalam IDR
+  startsAt: string | Date; // Waktu mulai event
+  endsAt: string | Date; // Waktu selesai event
+  quantity: number; // Jumlah tiket yang tersedia
+  description: string; // Deskripsi detail event
+  ticketTypes: string; // Jenis tiket (VIP, Regular, dll) - string tunggal sesuai schema
+  isFree: boolean; // Apakah event gratis atau berbayar
+  organizerId: number; // ID user yang membuat event (organizer)
 }
 
 // Service class untuk mengelola operasi event
 export class EventService {
-  
   /**
    * Mendapatkan daftar event dengan filter opsional
    * @param params - Parameter filter untuk pencarian event
    * @returns Array of events yang sesuai dengan kriteria
    */
+
+  eventRepository = new EventRepository();
+
   async getEvents(params: GetEventsParams) {
-    const { category, location, searchQuery } = params;
-    
+    const { category, location, searchQuery,upcomingOnly = false } = params;
+
     // Query database untuk mencari event yang sesuai kriteria
     return await prisma.event.findMany({
       where: {
@@ -42,26 +46,28 @@ export class EventService {
         // Filter berdasarkan lokasi jika ada
         ...(location && { location }),
         // Pencarian berdasarkan judul event (case insensitive) jika ada
-        ...(searchQuery && { title: { contains: searchQuery, mode: "insensitive" } }),
+        ...(searchQuery && {
+          title: { contains: searchQuery, mode: "insensitive" },
+        }),
         // Hanya event yang belum dimulai (startsAt >= hari ini)
-        startsAt: { gte: new Date() }
+        startsAt: { gte: new Date() },
       },
-      include: { 
+      include: {
         // Include data promotions untuk event
         promotions: true,
         // Include data organizer (user yang membuat event)
         organizer: {
           select: {
-            id: true,        // ID organizer
-            name: true,      // Nama organizer
-            email: true      // Email organizer
-          }
-        }
+            id: true, // ID organizer
+            name: true, // Nama organizer
+            email: true, // Email organizer
+          },
+        },
       },
       orderBy: {
         // Urutkan berdasarkan waktu mulai (yang paling awal dulu)
-        startsAt: 'asc'
-      }
+        startsAt: "asc",
+      },
     });
   }
 
@@ -74,21 +80,29 @@ export class EventService {
     // Query database untuk mendapatkan event berdasarkan ID
     return await prisma.event.findUnique({
       where: { eventId: id },
-      include: { 
+      include: {
         // Include data promotions untuk event
-        promotions: true, 
+        promotions: true,
         // Include data reviews/rating event
         reviews: true,
         // Include data organizer (user yang membuat event)
         organizer: {
           select: {
-            id: true,        // ID organizer
-            name: true,      // Nama organizer
-            email: true      // Email organizer
-          }
-        }
-      }
+            id: true, // ID organizer
+            name: true, // Nama organizer
+            email: true, // Email organizer
+          },
+        },
+      },
     });
+  }
+
+  async getEventsByOrganizer(
+    organizerId: number,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginatedResponse<EventWithRelations>> {
+    return this.eventRepository.getEventsByOrganizer(organizerId, page, limit);
   }
 
   /**
@@ -98,24 +112,24 @@ export class EventService {
    */
   async createEvent(params: CreateEventParams) {
     const { startsAt, endsAt, ...eventData } = params;
-    
+
     // Query database untuk membuat event baru
     return await prisma.event.create({
       data: {
-        ...eventData,                    // Semua data event lainnya
-        startsAt: new Date(startsAt),    // Convert string ke Date object
-        endsAt: new Date(endsAt)         // Convert string ke Date object
+        ...eventData, // Semua data event lainnya
+        startsAt: new Date(startsAt), // Convert string ke Date object
+        endsAt: new Date(endsAt), // Convert string ke Date object
       },
       include: {
         // Include data organizer untuk response
         organizer: {
           select: {
-            id: true,        // ID organizer
-            name: true,      // Nama organizer
-            email: true      // Email organizer
-          }
-        }
-      }
+            id: true, // ID organizer
+            name: true, // Nama organizer
+            email: true, // Email organizer
+          },
+        },
+      },
     });
   }
 }

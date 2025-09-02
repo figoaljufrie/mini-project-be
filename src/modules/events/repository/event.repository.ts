@@ -1,64 +1,68 @@
 // Import dependencies yang diperlukan
-import { prisma } from "../../../utils/prisma";  // Prisma client untuk akses database
-import { EventCategory, SearchEventQuery } from "../dto/create-event.dto";  // Import DTO dan enums
+import { prisma } from "../../../utils/prisma"; // Prisma client untuk akses database
+import { EventCategory, SearchEventQuery } from "../dto/create-event.dto"; // Import DTO dan enums
 
 // Interface untuk parameter pencarian event dengan pagination
-interface GetEventsParams {
-  category?: EventCategory;   // Filter berdasarkan kategori event
-  location?: string;          // Filter berdasarkan lokasi event
-  searchQuery?: string;       // Query pencarian judul event
-  minPrice?: number;          // Filter harga minimum
-  maxPrice?: number;          // Filter harga maksimum
-  dateFrom?: string;          // Filter tanggal mulai
-  dateTo?: string;            // Filter tanggal selesai
-  isFree?: boolean;           // Filter event gratis/berbayar
-  page?: number;              // Halaman untuk pagination
-  limit?: number;             // Limit item per halaman
-  organizerId?: number;       // Filter berdasarkan organizer
+export interface GetEventsParams {
+  category?: EventCategory; // Filter berdasarkan kategori event
+  location?: string; // Filter berdasarkan lokasi event
+  searchQuery?: string; // Query pencarian judul event
+  minPrice?: number; // Filter harga minimum
+  maxPrice?: number; // Filter harga maksimum
+  dateFrom?: string; // Filter tanggal mulai
+  dateTo?: string; // Filter tanggal selesai
+  isFree?: boolean; // Filter event gratis/berbayar
+  page?: number; // Halaman untuk pagination
+  limit?: number; // Limit item per halaman
+  organizerId?: number; // Filter berdasarkan organizer
+  upcomingOnly?: boolean; // Hanya event yang akan datang
 }
 
 // Interface untuk response pagination
-interface PaginatedResponse<T> {
-  data: T[];                  // Array data events
+export interface PaginatedResponse<T> {
+  data: T[]; // Array data events
   pagination: {
-    page: number;             // Halaman saat ini
-    limit: number;            // Limit item per halaman
-    total: number;            // Total semua events
-    totalPages: number;       // Total halaman
-    hasNext: boolean;         // Apakah ada halaman selanjutnya
-    hasPrev: boolean;         // Apakah ada halaman sebelumnya
+    page: number; // Halaman saat ini
+    limit: number; // Limit item per halaman
+    total: number; // Total semua events
+    totalPages: number; // Total halaman
+    hasNext: boolean; // Apakah ada halaman selanjutnya
+    hasPrev: boolean; // Apakah ada halaman sebelumnya
   };
 }
 
 // Interface untuk event dengan relasi lengkap
-interface EventWithRelations {
-  eventId: number;            // ID event
-  title: string;              // Judul event
-  category: string;           // Kategori event
-  location: string;           // Lokasi event
-  startsAt: Date;             // Waktu mulai
-  endsAt: Date;               // Waktu selesai
-  quantity: number;           // Jumlah tiket
-  priceIdr: number;           // Harga tiket
-  isFree: boolean;            // Status gratis
-  description: string;        // Deskripsi event
+export interface EventWithRelations {
+  eventId: number; // ID event
+  title: string; // Judul event
+  category: string; // Kategori event
+  location: string; // Lokasi event
+  startsAt: Date; // Waktu mulai
+  endsAt: Date; // Waktu selesai
+  quantity: number; // Jumlah tiket
+  priceIdr: number; // Harga tiket
+  isFree: boolean; // Status gratis
+  description: string; // Deskripsi event
   ticketTypes: string | null; // Jenis tiket
-  createdAt: Date;            // Waktu dibuat
-  updatedAt: Date;            // Waktu terakhir update
-  organizerId: number;        // ID organizer
-  organizer: {                 // Data organizer
+  createdAt: Date; // Waktu dibuat
+  updatedAt: Date; // Waktu terakhir update
+  organizerId: number; // ID organizer
+  organizer: {
+    // Data organizer
     id: number;
     name: string;
     email: string;
     role: string;
   };
-  promotions: Array<{          // Data promotions
+  promotions: Array<{
+    // Data promotions
     id: number;
     discount: number;
     startDate: Date;
     endDate: Date;
   }>;
-  reviews: Array<{             // Data reviews
+  reviews: Array<{
+    // Data reviews
     id: number;
     rating: number;
     comment: string | null;
@@ -68,7 +72,8 @@ interface EventWithRelations {
       name: string;
     };
   }>;
-  transactions: Array<{        // Data transactions
+  transactions: Array<{
+    // Data transactions
     id: number;
     status: string;
     totalIdr: number;
@@ -78,13 +83,14 @@ interface EventWithRelations {
 
 // Repository class untuk mengelola operasi database event
 export class EventRepository {
-  
   /**
    * Mendapatkan daftar events dengan filter dan pagination
    * @param params - Parameter filter dan pagination
    * @returns Events dengan informasi pagination
    */
-  async getEvents(params: GetEventsParams = {}): Promise<PaginatedResponse<EventWithRelations>> {
+  async getEvents(
+    params: GetEventsParams = {}
+  ): Promise<PaginatedResponse<EventWithRelations>> {
     const {
       category,
       location,
@@ -96,7 +102,8 @@ export class EventRepository {
       isFree,
       page = 1,
       limit = 10,
-      organizerId
+      organizerId,
+      upcomingOnly = false,
     } = params;
 
     // Hitung offset untuk pagination
@@ -114,7 +121,7 @@ export class EventRepository {
     if (location) {
       whereClause.location = {
         contains: location,
-        mode: "insensitive"
+        mode: "insensitive",
       };
     }
 
@@ -122,7 +129,7 @@ export class EventRepository {
     if (searchQuery) {
       whereClause.title = {
         contains: searchQuery,
-        mode: "insensitive"
+        mode: "insensitive",
       };
     }
 
@@ -159,14 +166,16 @@ export class EventRepository {
     }
 
     // Hanya tampilkan event yang belum dimulai
-    whereClause.startsAt = {
-      ...whereClause.startsAt,
-      gte: new Date()
-    };
+    if (upcomingOnly) {
+      whereClause.startsAt = {
+        ...whereClause.startsAt,
+        gte: new Date(),
+      };
+    }
 
     // Query untuk mendapatkan total events (untuk pagination)
     const total = await prisma.event.count({
-      where: whereClause
+      where: whereClause,
     });
 
     // Query untuk mendapatkan events dengan relasi
@@ -179,8 +188,8 @@ export class EventRepository {
             id: true,
             name: true,
             email: true,
-            role: true
-          }
+            role: true,
+          },
         },
         // Include data promotions
         promotions: {
@@ -188,8 +197,8 @@ export class EventRepository {
             id: true,
             discount: true,
             startDate: true,
-            endDate: true
-          }
+            endDate: true,
+          },
         },
         // Include data reviews
         reviews: {
@@ -201,10 +210,10 @@ export class EventRepository {
             user: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
+                name: true,
+              },
+            },
+          },
         },
         // Include data transactions
         transactions: {
@@ -212,17 +221,17 @@ export class EventRepository {
             id: true,
             status: true,
             totalIdr: true,
-            createdAt: true
-          }
-        }
+            createdAt: true,
+          },
+        },
       },
       // Ordering berdasarkan waktu mulai (yang paling awal dulu)
       orderBy: {
-        startsAt: 'asc'
+        startsAt: "asc",
       },
       // Pagination
       skip: offset,
-      take: limit
+      take: limit,
     });
 
     // Hitung total halaman
@@ -236,8 +245,8 @@ export class EventRepository {
         total,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -256,8 +265,8 @@ export class EventRepository {
             id: true,
             name: true,
             email: true,
-            role: true
-          }
+            role: true,
+          },
         },
         // Include data promotions
         promotions: {
@@ -265,8 +274,8 @@ export class EventRepository {
             id: true,
             discount: true,
             startDate: true,
-            endDate: true
-          }
+            endDate: true,
+          },
         },
         // Include data reviews
         reviews: {
@@ -278,10 +287,10 @@ export class EventRepository {
             user: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
+                name: true,
+              },
+            },
+          },
         },
         // Include data transactions
         transactions: {
@@ -289,10 +298,10 @@ export class EventRepository {
             id: true,
             status: true,
             totalIdr: true,
-            createdAt: true
-          }
-        }
-      }
+            createdAt: true,
+          },
+        },
+      },
     });
 
     return event as EventWithRelations | null;
@@ -325,10 +334,10 @@ export class EventRepository {
             id: true,
             name: true,
             email: true,
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
 
     return event;
@@ -340,18 +349,21 @@ export class EventRepository {
    * @param updateData - Data yang akan diupdate
    * @returns Event yang sudah diupdate
    */
-  async updateEvent(eventId: number, updateData: Partial<{
-    title: string;
-    category: string;
-    location: string;
-    priceIdr: number;
-    startsAt: Date;
-    endsAt: Date;
-    quantity: number;
-    description: string;
-    ticketTypes: string;
-    isFree: boolean;
-  }>) {
+  async updateEvent(
+    eventId: number,
+    updateData: Partial<{
+      title: string;
+      category: string;
+      location: string;
+      priceIdr: number;
+      startsAt: Date;
+      endsAt: Date;
+      quantity: number;
+      description: string;
+      ticketTypes: string;
+      isFree: boolean;
+    }>
+  ) {
     const event = await prisma.event.update({
       where: { eventId },
       data: updateData,
@@ -362,10 +374,10 @@ export class EventRepository {
             id: true,
             name: true,
             email: true,
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
 
     return event;
@@ -378,7 +390,7 @@ export class EventRepository {
    */
   async deleteEvent(eventId: number) {
     const event = await prisma.event.delete({
-      where: { eventId }
+      where: { eventId },
     });
 
     return event;
@@ -391,12 +403,8 @@ export class EventRepository {
    * @param limit - Limit item per halaman
    * @returns Events yang dibuat oleh organizer tertentu
    */
-  async getEventsByOrganizer(organizerId: number, page: number = 1, limit: number = 10) {
-    return this.getEvents({
-      organizerId,
-      page,
-      limit
-    });
+  async getEventsByOrganizer(organizerId: number, page = 1, limit = 10) {
+    return this.getEvents({ organizerId, page, limit, upcomingOnly: false });
   }
 
   /**
@@ -412,22 +420,22 @@ export class EventRepository {
       where: {
         startsAt: {
           gte: new Date(),
-          lte: sevenDaysFromNow
-        }
+          lte: sevenDaysFromNow,
+        },
       },
       include: {
         organizer: {
           select: {
             id: true,
             name: true,
-            email: true
-          }
-        }
+            email: true,
+          },
+        },
       },
       orderBy: {
-        startsAt: 'asc'
+        startsAt: "asc",
       },
-      take: limit
+      take: limit,
     });
 
     return events;
@@ -441,48 +449,44 @@ export class EventRepository {
   async getEventStats(organizerId?: number) {
     const whereClause = organizerId ? { organizerId } : {};
 
-    const [
-      totalEvents,
-      upcomingEvents,
-      completedEvents,
-      totalRevenue
-    ] = await Promise.all([
-      // Total events
-      prisma.event.count({ where: whereClause }),
-      
-      // Events yang akan datang
-      prisma.event.count({
-        where: {
-          ...whereClause,
-          startsAt: { gte: new Date() }
-        }
-      }),
-      
-      // Events yang sudah selesai
-      prisma.event.count({
-        where: {
-          ...whereClause,
-          endsAt: { lt: new Date() }
-        }
-      }),
-      
-      // Total revenue dari transactions
-      prisma.transaction.aggregate({
-        where: {
-          ...whereClause,
-          status: 'DONE'
-        },
-        _sum: {
-          totalIdr: true
-        }
-      })
-    ]);
+    const [totalEvents, upcomingEvents, completedEvents, totalRevenue] =
+      await Promise.all([
+        // Total events
+        prisma.event.count({ where: whereClause }),
+
+        // Events yang akan datang
+        prisma.event.count({
+          where: {
+            ...whereClause,
+            startsAt: { gte: new Date() },
+          },
+        }),
+
+        // Events yang sudah selesai
+        prisma.event.count({
+          where: {
+            ...whereClause,
+            endsAt: { lt: new Date() },
+          },
+        }),
+
+        // Total revenue dari transactions
+        prisma.transaction.aggregate({
+          where: {
+            ...whereClause,
+            status: "DONE",
+          },
+          _sum: {
+            totalIdr: true,
+          },
+        }),
+      ]);
 
     return {
       totalEvents,
       upcomingEvents,
       completedEvents,
-      totalRevenue: totalRevenue._sum.totalIdr || 0
+      totalRevenue: totalRevenue._sum.totalIdr || 0,
     };
   }
 }

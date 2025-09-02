@@ -45,8 +45,8 @@ model User {
   coupons            Coupon[]
   organizerCoupons   Coupon[]            @relation("OrganizerCoupons")
   Transactions       Transaction[]
-  events             Event[]             // events yang dibuat oleh organizer
-  reviews            Review[]            // reviews yang dibuat oleh user
+  events             Event[] // events yang dibuat oleh organizer
+  reviews            Review[] // reviews yang dibuat oleh user
 }
 
 model Coupon {
@@ -64,7 +64,8 @@ model Coupon {
   user   User? @relation(fields: [userId], references: [id])
 
   // organizer-specific:
-  quantity    Int?
+  used        Int? @default(0) // total uses
+  quantity    Int? // coupon availability
   organizerId Int?
 
   transactions Transaction[]
@@ -91,35 +92,34 @@ model Transaction {
   totalIdr  Int
   createdAt DateTime @default(now())
 
-  couponId     Int?
-  coupon       Coupon? @relation(fields: [couponId], references: [id])
-  event        Event?  @relation(fields: [eventId], references: [eventId])
-  
+  couponId Int?
+  coupon   Coupon? @relation(fields: [couponId], references: [id])
+  event    Event?  @relation(fields: [eventId], references: [eventId])
 
   @@index([eventId, status, createdAt])
   @@index([userId, createdAt])
 }
 
 model Event {
-  eventId       Int          @id @default(autoincrement())
-  organizerId   Int
-  title         String
-  category      String
-  location      String
-  startsAt      DateTime
-  endsAt        DateTime
-  quantity      Int
-  priceIdr      Int
-  isFree        Boolean      @default(false)
-  description   String
-  ticketTypes   String?      // misalnya VIP, Regular, dsb.
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  eventId     Int      @id @default(autoincrement())
+  organizerId Int
+  title       String
+  category    String
+  location    String
+  startsAt    DateTime
+  endsAt      DateTime
+  quantity    Int
+  priceIdr    Int
+  isFree      Boolean  @default(false)
+  description String
+  ticketTypes String? // misalnya VIP, Regular, dsb.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  organizer     User         @relation(fields: [organizerId], references: [id])
-  transactions  Transaction[]
-  promotions    Promotion[]
-  reviews       Review[]
+  organizer    User          @relation(fields: [organizerId], references: [id])
+  transactions Transaction[]
+  promotions   Promotion[]
+  reviews      Review[]
 }
 
 model Promotion {
@@ -129,14 +129,14 @@ model Promotion {
   startDate DateTime
   endDate   DateTime
 
-  event     Event    @relation(fields: [eventId], references: [eventId])
+  event Event @relation(fields: [eventId], references: [eventId])
 }
 
 model Review {
   id        Int      @id @default(autoincrement())
   eventId   Int
   userId    Int
-  rating    Int      // 1-5 stars
+  rating    Int // 1-5 stars
   comment   String?
   createdAt DateTime @default(now())
 
@@ -158,4 +158,3 @@ enum TxStatus {
   EXPIRED
   CANCELED
 }
-
