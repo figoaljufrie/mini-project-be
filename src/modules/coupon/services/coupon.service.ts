@@ -1,6 +1,9 @@
 import { CouponRepository } from "../repository/coupon.repository";
 import { CreateCouponDto } from "../dto/coupon.dto";
 import { RedeemCouponDto } from "../dto/coupon-redeem.dto";
+import { $Enums } from "../../../generated/prisma";
+
+const { CouponStatus } = $Enums;
 
 export class CouponService {
   private couponRepository: CouponRepository;
@@ -9,69 +12,83 @@ export class CouponService {
     this.couponRepository = new CouponRepository();
   }
 
-  //organizer kalo mau bikin kcoupon:
-  public async createOrganizerCoupon(
-    data: CreateCouponDto,
-    organizerId: number
-  ) {
+  public async createOrganizerCoupon(data: CreateCouponDto, organizerId: number) {
     if (!organizerId) {
-      throw new Error(
-        "ORganizer ID is required to create an organizer coupon."
-      );
+      throw new Error("Organizer ID is required to create an organizer coupon.");
     }
     return this.couponRepository.createOrganizerCoupon(data, organizerId);
   }
 
-  //bikin referal coupon buat user baru:
-  public async createReferralCoupon(
-    userId: number,
-    discountIdr: number,
-    code: string
-  ) {
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 3);
-
-    const coupon = await this.couponRepository.createReferralCoupon(
-      {
-        code,
-        discountIdr,
-        type: "REFERRAL",
-        expiresAt,
-      },
-      userId
-    );
-
+  public async findById(id: number) {
+    const coupon = await this.couponRepository.findById(id);
+    if (!coupon) throw new Error("Coupon not found");
     return coupon;
   }
 
-  //user redeem coupon:
+  public async createReferralCoupon(userId: number, discountIdr: number, code: string) {
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 3);
+
+    return this.couponRepository.createReferralCoupon(
+      { code, discountIdr, type: "REFERRAL", expiresAt },
+      userId
+    );
+  }
+
   public async redeemCoupon(dto: RedeemCouponDto) {
     const coupon = await this.couponRepository.findCouponByCode(dto.code);
+    if (!coupon) throw new Error("Coupon not found");
 
-    //kalo coupon gak ada:
-    if (!coupon) {
-      throw new Error("Coupon not found");
-    }
-
-    //cek kapan expirednya:
     if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-      throw new Error("Coupon has Expired.");
+      throw new Error("Coupon has expired.");
     }
 
-    // cek kalo referal coupon udah dipakai:
-    if (coupon.type === "REFERRAL" && coupon.status === "USED") {
+    if (coupon.type === "REFERRAL" && coupon.status === CouponStatus.USED) {
       throw new Error("Coupon has been used.");
     }
-    return await this.couponRepository.redeemCode(dto.code, dto.userId);
+
+    if (coupon.type === "ORGANIZER") {
+      if (!coupon.quantity || coupon.quantity <= 0) {
+        throw new Error("Coupon is no longer available.");
+      }
+
+      await this.couponRepository.updateCouponQuantity(coupon.id, coupon.quantity - 1);
+
+      if (coupon.quantity - 1 === 0) {
+        await this.couponRepository.updateCouponStatus(coupon.id, CouponStatus.USED);
+      }
+    }
+
+    return this.couponRepository.redeemCode(dto.code, dto.userId);
   }
 
-  // Get all coupons created by an organizer
   public async getOrganizerCoupons(organizerId: number) {
-    return this.couponRepository.getAllOrganizerCoupons(organizerId);
+    const coupons = await this.couponRepository.getAllOrganizerCoupons(organizerId);
+    return coupons.map((c) => ({ ...c, usedCount: c._count.transactions }));
   }
 
-  // Get all coupons that belong to a customer
   public async getUserCoupons(userId: number) {
     return this.couponRepository.getUserCoupons(userId);
+  }
+
+  public async useCoupon(couponId: number) {
+    const coupon = await this.findById(couponId);
+
+    if (coupon.type === "ORGANIZER") {
+      if (coupon.quantity === null) throw new Error("Organizer coupon invalid");
+      if ((coupon.used ?? 0) >= coupon.quantity) {
+        throw new Error("Organizer coupon exhausted");
+      }
+      return this.couponRepository.updateCouponUsage(couponId);
+    }
+
+    if (coupon.type === "REFERRAL") {
+      if (coupon.status === CouponStatus.USED) {
+        throw new Error("Referral coupon already used");
+      }
+      return this.couponRepository.updateCouponStatus(couponId, CouponStatus.USED);
+    }
+
+    throw new Error("Invalid coupon type");
   }
 }

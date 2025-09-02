@@ -1,25 +1,28 @@
-import { TransactionRepository } from "../repository/transaction.repository";  
-import { EventRepository } from "../../events/repository/event.repository";     
-import { UserService } from "../../users/services/user.service";               
-import { 
-  CreateTransactionData, 
-  CreateTransactionResponse, 
+import { TransactionRepository } from "../repository/transaction.repository";
+import { EventRepository } from "../../events/repository/event.repository";
+import { UserService } from "../../users/services/user.service";
+import { CouponService } from "../../coupon/services/coupon.service";
+import {
+  CreateTransactionData,
+  CreateTransactionResponse,
   TransactionStatus,
   SearchTransactionQuery,
   UpdateTransactionStatusData,
-  PaginatedTransactionResponse
-} from "../dto/create-transaction.dto";  
+  PaginatedTransactionResponse,
+} from "../dto/create-transaction.dto";
 
 // Service class untuk mengelola business logic transaction
 export class TransactionService {
   private transactionRepository: TransactionRepository;
   private eventRepository: EventRepository;
   private userService: UserService;
+  private couponService: CouponService = new CouponService();
 
   constructor() {
     this.transactionRepository = new TransactionRepository();
     this.eventRepository = new EventRepository();
     this.userService = new UserService();
+    this.couponService = new CouponService();
   }
 
   /**
@@ -28,7 +31,10 @@ export class TransactionService {
    * @param transactionData - Data transaction yang akan dibuat
    * @returns Response transaction yang baru dibuat
    */
-  async createTransaction(userId: number, transactionData: CreateTransactionData): Promise<CreateTransactionResponse> {
+  async createTransaction(
+    userId: number,
+    transactionData: CreateTransactionData
+  ): Promise<CreateTransactionResponse> {
     try {
       const { eventId, couponId, pointsUsed = 0 } = transactionData;
 
@@ -52,6 +58,15 @@ export class TransactionService {
 
       // Validasi dan apply coupon jika ada
       if (couponId) {
+        const coupon = await this.couponService.findById(couponId);
+        if (!coupon) throw new Error("Coupon tidak ditemukan");
+
+        totalPrice = Math.max(0, totalPrice - coupon.discountIdr);
+
+        totalPrice = Math.max(0, totalPrice - coupon.discountIdr);
+
+        // Decrease coupon quota
+        await this.couponService.useCoupon(coupon.id);
         // TODO: Implement coupon validation logic
         // const coupon = await this.couponService.validateCoupon(couponId, userId, eventId);
         // if (coupon) {
@@ -72,7 +87,7 @@ export class TransactionService {
 
         // TODO: Implement points deduction logic
         // await this.userService.updatePoints(userId, -pointsUsed);
-        
+
         // Kurangi total harga
         totalPrice = Math.max(0, totalPrice - pointsUsed);
       }
@@ -83,12 +98,12 @@ export class TransactionService {
         eventId,
         status: TransactionStatus.WAITING_FOR_PAYMENT,
         totalIdr: totalPrice,
-        ...(couponId && { couponId })
+        ...(couponId && { couponId }),
       });
 
       // Kurangi quantity event
       await this.eventRepository.updateEvent(eventId, {
-        quantity: event.quantity - 1
+        quantity: event.quantity - 1,
       });
 
       return {
@@ -109,19 +124,22 @@ export class TransactionService {
             startsAt: transaction.event?.startsAt.toISOString() || "",
             endsAt: transaction.event?.endsAt.toISOString() || "",
             priceIdr: transaction.event?.priceIdr || 0,
-            isFree: transaction.event?.isFree || false
+            isFree: transaction.event?.isFree || false,
           },
           user: {
             id: transaction.user?.id || 0,
             name: transaction.user?.name || "",
             email: transaction.user?.email || "",
-            points: transaction.user?.points || 0
-          }
-        }
+            points: transaction.user?.points || 0,
+          },
+        },
       };
-
     } catch (error) {
-      throw new Error(`Gagal membuat transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal membuat transaction: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -130,11 +148,17 @@ export class TransactionService {
    * @param params - Parameter filter dan pagination
    * @returns Transactions dengan informasi pagination
    */
-  async getTransactions(params: SearchTransactionQuery = {}): Promise<PaginatedTransactionResponse> {
+  async getTransactions(
+    params: SearchTransactionQuery = {}
+  ): Promise<PaginatedTransactionResponse> {
     try {
       return await this.transactionRepository.getTransactions(params);
     } catch (error) {
-      throw new Error(`Gagal mendapatkan transactions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal mendapatkan transactions: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -145,13 +169,19 @@ export class TransactionService {
    */
   async getTransactionById(transactionId: number) {
     try {
-      const transaction = await this.transactionRepository.getTransactionById(transactionId);
+      const transaction = await this.transactionRepository.getTransactionById(
+        transactionId
+      );
       if (!transaction) {
         throw new Error("Transaction tidak ditemukan");
       }
       return transaction;
     } catch (error) {
-      throw new Error(`Gagal mendapatkan transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal mendapatkan transaction: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -161,20 +191,36 @@ export class TransactionService {
    * @param updateData - Data yang akan diupdate
    * @returns Transaction yang sudah diupdate
    */
-  async updateTransactionStatus(transactionId: number, updateData: UpdateTransactionStatusData) {
+  async updateTransactionStatus(
+    transactionId: number,
+    updateData: UpdateTransactionStatusData
+  ) {
     try {
-      const transaction = await this.transactionRepository.getTransactionById(transactionId);
+      const transaction = await this.transactionRepository.getTransactionById(
+        transactionId
+      );
       if (!transaction) {
         throw new Error("Transaction tidak ditemukan");
       }
 
       // Validasi status transition
-      if (!this.isValidStatusTransition(transaction.status as TransactionStatus, updateData.status)) {
-        throw new Error(`Status transition tidak valid: ${transaction.status} -> ${updateData.status}`);
+      if (
+        !this.isValidStatusTransition(
+          transaction.status as TransactionStatus,
+          updateData.status
+        )
+      ) {
+        throw new Error(
+          `Status transition tidak valid: ${transaction.status} -> ${updateData.status}`
+        );
       }
 
       // Update status
-      const updatedTransaction = await this.transactionRepository.updateTransactionStatus(transactionId, updateData);
+      const updatedTransaction =
+        await this.transactionRepository.updateTransactionStatus(
+          transactionId,
+          updateData
+        );
 
       // Jika status berubah ke DONE, tambahkan points ke user (opsional)
       if (updateData.status === TransactionStatus.DONE) {
@@ -183,9 +229,12 @@ export class TransactionService {
       }
 
       return updatedTransaction;
-
     } catch (error) {
-      throw new Error(`Gagal update transaction status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal update transaction status: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -197,7 +246,9 @@ export class TransactionService {
    */
   async cancelTransaction(transactionId: number, userId: number) {
     try {
-      const transaction = await this.transactionRepository.getTransactionById(transactionId);
+      const transaction = await this.transactionRepository.getTransactionById(
+        transactionId
+      );
       if (!transaction) {
         throw new Error("Transaction tidak ditemukan");
       }
@@ -213,15 +264,21 @@ export class TransactionService {
       }
 
       // Update status ke CANCELED
-      const canceledTransaction = await this.transactionRepository.updateTransactionStatus(transactionId, {
-        status: TransactionStatus.CANCELED
-      });
+      const canceledTransaction =
+        await this.transactionRepository.updateTransactionStatus(
+          transactionId,
+          {
+            status: TransactionStatus.CANCELED,
+          }
+        );
 
       // Kembalikan quantity event
-      const event = await this.eventRepository.getEventById(transaction.eventId);
+      const event = await this.eventRepository.getEventById(
+        transaction.eventId
+      );
       if (event) {
         await this.eventRepository.updateEvent(transaction.eventId, {
-          quantity: event.quantity + 1
+          quantity: event.quantity + 1,
         });
       }
 
@@ -229,9 +286,12 @@ export class TransactionService {
       // TODO: Implement points refund logic
 
       return canceledTransaction;
-
     } catch (error) {
-      throw new Error(`Gagal cancel transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal cancel transaction: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -242,11 +302,23 @@ export class TransactionService {
    * @param limit - Limit item per halaman
    * @returns Transactions user
    */
-  async getTransactionsByUser(userId: number, page: number = 1, limit: number = 10) {
+  async getTransactionsByUser(
+    userId: number,
+    page: number = 1,
+    limit: number = 10
+  ) {
     try {
-      return await this.transactionRepository.getTransactionsByUser(userId, page, limit);
+      return await this.transactionRepository.getTransactionsByUser(
+        userId,
+        page,
+        limit
+      );
     } catch (error) {
-      throw new Error(`Gagal mendapatkan transactions user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal mendapatkan transactions user: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -258,9 +330,16 @@ export class TransactionService {
    */
   async getTransactionStats(userId?: number, eventId?: number) {
     try {
-      return await this.transactionRepository.getTransactionStats(userId, eventId);
+      return await this.transactionRepository.getTransactionStats(
+        userId,
+        eventId
+      );
     } catch (error) {
-      throw new Error(`Gagal mendapatkan statistik transactions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal mendapatkan statistik transactions: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -273,7 +352,11 @@ export class TransactionService {
     try {
       return await this.transactionRepository.getExpiringTransactions(limit);
     } catch (error) {
-      throw new Error(`Gagal mendapatkan expiring transactions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gagal mendapatkan expiring transactions: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -283,21 +366,24 @@ export class TransactionService {
    * @param newStatus - Status baru
    * @returns Apakah transition valid
    */
-  private isValidStatusTransition(currentStatus: TransactionStatus, newStatus: TransactionStatus): boolean {
+  private isValidStatusTransition(
+    currentStatus: TransactionStatus,
+    newStatus: TransactionStatus
+  ): boolean {
     const validTransitions: Record<TransactionStatus, TransactionStatus[]> = {
       [TransactionStatus.WAITING_FOR_PAYMENT]: [
         TransactionStatus.WAITING_FOR_ADMIN_CONFIRMATION,
         TransactionStatus.CANCELED,
-        TransactionStatus.EXPIRED
+        TransactionStatus.EXPIRED,
       ],
       [TransactionStatus.WAITING_FOR_ADMIN_CONFIRMATION]: [
         TransactionStatus.DONE,
-        TransactionStatus.REJECTED
+        TransactionStatus.REJECTED,
       ],
       [TransactionStatus.DONE]: [], // Final status
       [TransactionStatus.REJECTED]: [], // Final status
       [TransactionStatus.EXPIRED]: [], // Final status
-      [TransactionStatus.CANCELED]: [] // Final status
+      [TransactionStatus.CANCELED]: [], // Final status
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;

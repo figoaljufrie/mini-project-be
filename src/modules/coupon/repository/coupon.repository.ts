@@ -1,3 +1,4 @@
+import { CouponStatus } from "../../../generated/prisma";
 import { prisma } from "../../../utils/prisma";
 import { CreateCouponDto } from "../dto/coupon.dto";
 
@@ -18,6 +19,10 @@ export class CouponRepository {
         userId: null, // organizer coupons don’t belong to a user
       },
     });
+  }
+
+  public async findById(id: number) {
+    return prisma.coupon.findUnique({ where: { id } });
   }
   //bikin kupon buat user:
   public async createReferralCoupon(data: CreateCouponDto, userId: number) {
@@ -82,9 +87,15 @@ export class CouponRepository {
   }
 
   // get all coupons for specific organizer
+
   public async getAllOrganizerCoupons(organizerId: number) {
     return prisma.coupon.findMany({
       where: { organizerId },
+      include: {
+        _count: {
+          select: { transactions: true }, // ⭐ count how many transactions used this coupon
+        },
+      },
     });
   }
 
@@ -92,6 +103,42 @@ export class CouponRepository {
   public async getUserCoupons(userId: number) {
     return prisma.coupon.findMany({
       where: { userId },
+    });
+  }
+
+  public async updateCouponQuantity(couponId: number, newQuantity: number) {
+    return prisma.coupon.update({
+      where: { id: couponId },
+      data: { quantity: newQuantity },
+    });
+  }
+
+  public async updateCouponStatus(couponId: number, status: CouponStatus) {
+    return prisma.coupon.update({
+      where: { id: couponId },
+      data: { status: status as CouponStatus },
+    });
+  }
+
+  public async updateCouponUsage(couponId: number) {
+    const coupon = await prisma.coupon.findUnique({ where: { id: couponId } });
+    if (!coupon) throw new Error("Coupon not found");
+
+    if (coupon.quantity === null) throw new Error("Coupon has no quota");
+
+    const newUsed = (coupon.used ?? 0) + 1;
+
+    let statusUpdate: CouponStatus | undefined = undefined;
+    if (newUsed >= coupon.quantity) {
+      statusUpdate = CouponStatus.USED;
+    }
+
+    return prisma.coupon.update({
+      where: { id: couponId },
+      data: {
+        used: newUsed,
+        ...(statusUpdate && { status: statusUpdate }),
+      },
     });
   }
 }

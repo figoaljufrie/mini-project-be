@@ -39,6 +39,13 @@ export class UserRouter {
       this.userController.getAll
     );
 
+    // user.router.ts
+    this.router.get(
+      "/auth/me",
+      this.authMiddleware.authenticate,
+      this.userController.getMe
+    );
+
     this.router.get(
       "/users/:id",
       this.authMiddleware.authenticate,
@@ -70,6 +77,14 @@ export class UserRouter {
       this.jwtMiddleware.verifyToken(process.env.JWT_SECRET_KEY!),
       validateResetPassword,
       this.userController.resetPassword
+    );
+
+    // user.router.ts
+    this.router.patch(
+      "/auth/update-password",
+      this.jwtMiddleware.verifyToken(process.env.JWT_SECRET_KEY!),
+      this.authMiddleware.authenticate,
+      this.userController.updatePassword
     );
   }
 

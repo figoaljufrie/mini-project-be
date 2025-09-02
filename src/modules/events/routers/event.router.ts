@@ -1,5 +1,5 @@
 import { Router } from "express"; 
-import { createEvent, getEvents, getEventById } from "../controllers/event.controller"; 
+import { createEvent, getEvents, getEventById, getOrganizerEvents } from "../controllers/event.controller"; 
 import { authMiddleware, organizerOnly } from "../../../middleware/auth.middleware";
 
 const EventRouter = Router();
@@ -26,6 +26,10 @@ EventRouter.get("/:id", getEventById);
 // Middleware: authMiddleware (validasi JWT token) + organizerOnly (validasi role)
 // Request body: title, category, location, priceIdr, startsAt, endsAt, quantity, description, ticketTypes, isFree
 // Response: Event yang baru dibuat dengan data organizer
+EventRouter.post("/", authMiddleware, organizerOnly, createEvent);
+
+// OrganizerOnly routes:
+EventRouter.get("/organizer", authMiddleware, organizerOnly, getOrganizerEvents);
 EventRouter.post("/", authMiddleware, organizerOnly, createEvent);
 
 // Export router untuk digunakan di app.ts

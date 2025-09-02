@@ -99,6 +99,15 @@ export class UserRepository {
     return user;
   }
 
+  // buat get profile sendiri:
+  public async getMe(userId: number) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("User not found");
+    // Remove password before returning
+    const { password, ...safeUser } = user;
+    return safeUser;
+  }
+
   private generateToken(user: any, secret: string, expiresIn: string) {
     const payload = {
       id: user.id,

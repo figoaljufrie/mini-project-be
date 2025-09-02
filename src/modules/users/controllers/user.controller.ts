@@ -22,6 +22,7 @@ export class UserController {
     this.validateToken = this.validateToken.bind(this);
     this.forgotPassword = this.forgotPassword.bind(this);
     this.resetPassword = this.resetPassword.bind(this);
+    this.updatePassword = this.updatePassword.bind(this);
   }
 
   public async create(req: Request, res: Response) {
@@ -86,6 +87,20 @@ export class UserController {
       );
     }
   }
+
+  public getMe = async (req: Request, res: Response) => {
+    try {
+      const authUser = (req as any).user; // <- changed from res.locals.user
+      if (!authUser || !authUser.id) {
+        return handleError(res, "User not authenticated", 401, "Unauthorized");
+      }
+
+      const user = await this.userService.getMe(authUser.id);
+      handleSuccess(res, "Fetched profile successfully", user, 200);
+    } catch (err) {
+      handleError(res, "Failed to fetch profile", 401, (err as Error).message);
+    }
+  };
 
   //cari lewat id:
   public findById = async (req: Request, res: Response) => {
@@ -241,6 +256,40 @@ export class UserController {
       return handleError(
         res,
         "Failed to reset password",
+        400,
+        (err as Error).message
+      );
+    }
+  }
+
+  public async updatePassword(req: Request, res: Response) {
+    try {
+      const authUser = res.locals.user; // get logged-in user from auth middleware
+      if (!authUser || !authUser.id) {
+        return handleError(res, "User not authenticated", 401, "Unauthorized");
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return handleError(
+          res,
+          "Both passwords are required",
+          400,
+          "Bad Request"
+        );
+      }
+
+      const result = await this.userService.updatePasswordWithCurrent(
+        authUser.id,
+        currentPassword,
+        newPassword
+      );
+
+      return handleSuccess(res, "Password updated successfully", result, 200);
+    } catch (err) {
+      return handleError(
+        res,
+        "Failed to update password",
         400,
         (err as Error).message
       );
