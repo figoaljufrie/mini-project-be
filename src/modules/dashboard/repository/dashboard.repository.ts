@@ -56,18 +56,18 @@ export class DashboardRepository {
   }
 
   public async getTransactionById(transactionId: number, organizerId: number) {
-  return prisma.transaction.findFirst({
-    where: {
-      id: transactionId,
-      event: { organizerId }
-    },
-    include: {
-      user: true,
-      event: true,
-      coupon: true,
-    },
-  });
-}
+    return prisma.transaction.findFirst({
+      where: {
+        id: transactionId,
+        event: { organizerId },
+      },
+      include: {
+        user: true,
+        event: true,
+        coupon: true,
+      },
+    });
+  }
 
   //bikin total vouchers buat data dashboard home visualization:
   public async getTotalVouchers(organizerId: number) {
@@ -86,15 +86,4 @@ export class DashboardRepository {
       },
     });
   }
-
-  //bikin total tiket buat data dashboard visualization: Nunggu mas Rafli
-  // public async getTotalTickets(organizerId: number) {
-  //   return prisma.ticket.count({
-  //     where: {
-  //       event: {
-  //         organizerId,
-  //       }
-  //     }
-  //   })
-  // }
 }

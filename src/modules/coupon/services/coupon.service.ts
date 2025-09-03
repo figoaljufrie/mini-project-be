@@ -91,4 +91,8 @@ export class CouponService {
 
     throw new Error("Invalid coupon type");
   }
+
+  public async rollbackCouponUsage(couponId: number) {
+  return this.couponRepository.rollbackCouponUsage(couponId);
+}
 }

@@ -1,18 +1,17 @@
-import { TransactionRepository } from "../repository/transaction.repository";
-import { EventRepository } from "../../events/repository/event.repository";
-import { UserService } from "../../users/services/user.service";
+import { prisma } from "../../../utils/prisma";
 import { CouponService } from "../../coupon/services/coupon.service";
+import { EventRepository } from "../../events/repository/event.repository";
+import { MailService } from "../../mail/mail.service";
+import { UserService } from "../../users/services/user.service";
 import {
   CreateTransactionData,
   CreateTransactionResponse,
-  TransactionStatus,
-  SearchTransactionQuery,
-  UpdateTransactionStatusData,
   PaginatedTransactionResponse,
+  SearchTransactionQuery,
+  TransactionStatus,
+  UpdateTransactionStatusData,
 } from "../dto/create-transaction.dto";
-import { MailService } from "../../mail/mail.service";
-import Mail from "nodemailer/lib/mailer";
-import { prisma } from "../../../utils/prisma";
+import { TransactionRepository } from "../repository/transaction.repository";
 
 interface TransactionEmailContext {
   userName: string;
@@ -288,14 +287,17 @@ export class TransactionService {
         );
 
         // Rollback event seat
-        const event = await this.eventRepository.getEventById(
-          transaction.eventId
-        );
-        if (event) {
-          await this.eventRepository.updateEvent(transaction.eventId, {
-            quantity: event.quantity + 1,
-          });
-        }
+       const event = await this.eventRepository.getEventById(transaction.eventId);
+  if (event) {
+    await this.eventRepository.updateEvent(transaction.eventId, {
+      quantity: event.quantity + 1,
+    });
+  }
+
+  // Rollback coupon usage if applied
+  if (transaction.couponId && transaction.coupon?.type) {
+    await this.couponService.rollbackCouponUsage(transaction.couponId);
+  }
       }
 
       return updatedTransaction;
