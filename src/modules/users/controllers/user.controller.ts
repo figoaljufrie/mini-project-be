@@ -4,12 +4,17 @@ import { handleSuccess } from "../../../helpers/handleSuccess";
 import { LoginDTO } from "../dto/login.dto";
 import { UpdateUserDTO } from "../dto/update.dto";
 import { UserService } from "../services/user.service";
+import { PointService } from "../../points/services/point.service";
+import { CloudinaryService } from "../../cloudinary/cloudinary.service";
 
 export class UserController {
   userService: UserService;
-
+  cloudinaryService: CloudinaryService;
+  pointService: PointService;
   constructor() {
     this.userService = new UserService();
+    this.cloudinaryService = new CloudinaryService();
+    this.pointService = new PointService();
 
     this.create = this.create.bind(this);
     this.createOrganizer = this.createOrganizer.bind(this);
@@ -23,6 +28,7 @@ export class UserController {
     this.forgotPassword = this.forgotPassword.bind(this);
     this.resetPassword = this.resetPassword.bind(this);
     this.updatePassword = this.updatePassword.bind(this);
+    this.updateAvatar = this.updateAvatar.bind(this);
   }
 
   public async create(req: Request, res: Response) {
@@ -90,13 +96,29 @@ export class UserController {
 
   public getMe = async (req: Request, res: Response) => {
     try {
-      const authUser = (req as any).user; // <- changed from res.locals.user
+      const authUser = (req as any).user; // <- you already changed this
       if (!authUser || !authUser.id) {
         return handleError(res, "User not authenticated", 401, "Unauthorized");
       }
 
+      // Get base user info
       const user = await this.userService.getMe(authUser.id);
-      handleSuccess(res, "Fetched profile successfully", user, 200);
+      if (!user) {
+        return handleError(res, "User not found", 404, "Not Found");
+      }
+
+      // Get available points from PointService
+      const availablePoints = await this.pointService.getAvailablePoints(
+        user.id
+      );
+
+      // Merge into response
+      const userWithPoints = {
+        ...user,
+        availablePoints,
+      };
+
+      handleSuccess(res, "Fetched profile successfully", userWithPoints, 200);
     } catch (err) {
       handleError(res, "Failed to fetch profile", 401, (err as Error).message);
     }
@@ -293,6 +315,40 @@ export class UserController {
         400,
         (err as Error).message
       );
+    }
+  }
+
+  async updateAvatar(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id || isNaN(Number(id))) {
+        return handleError(res, "Invalid user id", 400, "ID must be a number");
+      }
+
+      const userId = Number(id);
+      const file = req.file as Express.Multer.File;
+
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded." });
+      }
+
+      // 👇 upload to Cloudinary
+      const result = await this.cloudinaryService.upload(file);
+
+      const updatedUser = await this.userService.updateAvatar(
+        userId,
+        result.secure_url, // avatarUrl
+        result.public_id // avatarPublicId
+      );
+
+      return handleSuccess(
+        res,
+        "Avatar updated successfully",
+        updatedUser,
+        200
+      );
+    } catch (err) {
+      handleError(res, "Failed to update avatar", 400, (err as Error).message);
     }
   }
 }

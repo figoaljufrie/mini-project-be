@@ -185,7 +185,7 @@ export class UserService {
       secret,
       { expiresIn: "15m" }
     );
-    const resetLink = `http://localhost:3000/reset-password/${token}`;
+    const resetLink = `http://localhost:3000/auth/reset-password/${token}`;
 
     // Send reset email
     await this.mailService.sendMail(
@@ -228,5 +228,12 @@ export class UserService {
     await this.userRepository.updatePassword(userId, hashedPassword);
 
     return { message: "Password updated successfully" };
+  }
+  async updateAvatar(
+    userId: number,
+    avatarUrl: string,
+    avatarPublicId: string
+  ) {
+    return this.userRepository.updateAvatar(userId, avatarUrl, avatarPublicId);
   }
 }
