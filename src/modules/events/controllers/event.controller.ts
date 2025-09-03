@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { EventService } from "../services/event.service";
 import { handleError } from "../../../helpers/handleError";
+
 const eventService = new EventService();
 
 export const getEvents = async (req: Request, res: Response) => {
@@ -51,7 +52,7 @@ export const getEventById = async (req: Request, res: Response) => {
 
 export const getOrganizerEvents = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (res.locals.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -67,6 +68,7 @@ export const getOrganizerEvents = async (req: Request, res: Response) => {
             500,
             (error as Error).message
           );
+
   }
 };
 
@@ -114,5 +116,6 @@ export const createEvent = async (req: Request, res: Response) => {
             500,
             (error as Error).message
           );
+
   }
 };
