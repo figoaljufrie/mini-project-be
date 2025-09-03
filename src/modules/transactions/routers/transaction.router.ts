@@ -7,7 +7,8 @@ import {
   cancelTransaction, 
   getTransactionsByUser, 
   getTransactionStats, 
-  getExpiringTransactions 
+  getExpiringTransactions,
+  getTransactionsByOrganizer
 } from "../controllers/transaction.controller";  
 import { authMiddleware, organizerOnly } from "../../../middleware/auth.middleware";
 
@@ -45,7 +46,7 @@ TransactionRouter.get("/expiring", getExpiringTransactions as any);
 // Middleware: authMiddleware (validasi JWT token)
 // Request body: eventId (wajib), couponId (opsional), pointsUsed (opsional)
 // Response: Transaction yang baru dibuat dengan data event dan user
-TransactionRouter.post("/", authMiddleware, createTransaction as any);
+TransactionRouter.post("/create-transaction", authMiddleware, createTransaction as any);
 
 // PUT /api/transactions/:id/status - Update status transaction (ADMIN ONLY)
 // Middleware: authMiddleware (validasi JWT token) + admin role check
@@ -53,6 +54,8 @@ TransactionRouter.post("/", authMiddleware, createTransaction as any);
 // Request body: status (wajib), adminNotes (opsional)
 // Response: Transaction yang sudah diupdate
 TransactionRouter.put("/:id/status", authMiddleware, updateTransactionStatus as any);
+
+TransactionRouter.get("/organizer/me", authMiddleware, getTransactionsByOrganizer as any);
 
 // DELETE /api/transactions/:id - Cancel transaction (USER OWNER ONLY)
 // Middleware: authMiddleware (validasi JWT token)
@@ -93,6 +96,9 @@ TransactionRouter.get("/admin/all", authMiddleware, getTransactions as any);
 // Response: Analytics lengkap dengan charts dan metrics
 // Note: Endpoint ini untuk admin dashboard analytics
 TransactionRouter.get("/admin/analytics", authMiddleware, getTransactionStats as any);
+
+TransactionRouter.patch("/:id/payment-update", authMiddleware, getTransactionStats as any);
+
 
 // Export router untuk digunakan di app.ts
 export { TransactionRouter };

@@ -1,11 +1,13 @@
-// modules/users/validators/forgot-reset.validator.ts
 import { body, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { handleError } from "../../../helpers/handleError";
+import { handleError } from "../../helpers/handleError";
 
-export const validateResetPassword = [
-  body("password").notEmpty().withMessage("Password is required").isString(),
-  // body("token").notEmpty().withMessage("Token is required").isString(),
+export const validateName = [
+  body("name")
+    .notEmpty().withMessage("Name is required")
+    .isString().withMessage("Name must be a string")
+    .isLength({ min: 2 }).withMessage("Name must be at least 2 characters long")
+    .matches(/^[a-zA-Z\s]+$/).withMessage("Name can only contain letters and spaces"),
 
   (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);

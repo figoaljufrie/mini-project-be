@@ -42,7 +42,7 @@ export class UserRepository {
         referralCode: data.referralCode ?? null, // use generated referral code if provided
       },
     });
-    console.log(user);
+    
 
     return user;
   }
@@ -170,6 +170,20 @@ export class UserRepository {
       },
       data: {
         password: hashedPassword,
+      },
+    });
+  }
+
+  async updateAvatar(
+    userId: number,
+    avatarUrl: string,
+    avatarPublicId: string
+  ): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl,
+        avatarPublicId,
       },
     });
   }
