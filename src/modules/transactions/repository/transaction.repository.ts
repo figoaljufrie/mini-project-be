@@ -1,14 +1,22 @@
-import { prisma } from "../../../utils/prisma"; 
-import { TransactionStatus, SearchTransactionQuery, TransactionWithRelations, PaginatedTransactionResponse } from "../dto/create-transaction.dto"; 
+import { prisma } from "../../../utils/prisma";
+import {
+  TransactionStatus,
+  SearchTransactionQuery,
+  TransactionWithRelations,
+  PaginatedTransactionResponse,
+} from "../dto/create-transaction.dto";
+
+import { CouponType } from "../../coupon/dto/coupon.dto";
 
 export class TransactionRepository {
-  
   /**
    * Mendapatkan daftar transactions dengan filter dan pagination
    * @param params - Parameter filter dan pagination
    * @returns Transactions dengan informasi pagination
    */
-  async getTransactions(params: SearchTransactionQuery = {}): Promise<PaginatedTransactionResponse> {
+  async getTransactions(
+    params: SearchTransactionQuery = {}
+  ): Promise<PaginatedTransactionResponse> {
     const {
       userId,
       eventId,
@@ -18,7 +26,7 @@ export class TransactionRepository {
       minAmount,
       maxAmount,
       page = 1,
-      limit = 10
+      limit = 10,
     } = params;
 
     // Hitung offset untuk pagination
@@ -66,7 +74,7 @@ export class TransactionRepository {
 
     // Query untuk mendapatkan total transactions (untuk pagination)
     const total = await prisma.transaction.count({
-      where: whereClause
+      where: whereClause,
     });
 
     // Query untuk mendapatkan transactions dengan relasi
@@ -79,8 +87,8 @@ export class TransactionRepository {
             id: true,
             name: true,
             email: true,
-            points: true
-          }
+            points: true,
+          },
         },
         // Include data event dengan organizer
         event: {
@@ -97,10 +105,10 @@ export class TransactionRepository {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         // Include data coupon
         coupon: {
@@ -108,17 +116,17 @@ export class TransactionRepository {
             id: true,
             code: true,
             discountIdr: true,
-            type: true
-          }
-        }
+            type: true,
+          },
+        },
       },
       // Ordering berdasarkan waktu dibuat (yang terbaru dulu)
       orderBy: {
-        createdAt: 'desc'
+        createdAt: "desc",
       },
       // Pagination
       skip: offset,
-      take: limit
+      take: limit,
     });
 
     // Hitung total halaman
@@ -132,8 +140,8 @@ export class TransactionRepository {
         total,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -142,7 +150,9 @@ export class TransactionRepository {
    * @param transactionId - ID transaction yang dicari
    * @returns Transaction detail dengan semua relasi
    */
-  async getTransactionById(transactionId: number): Promise<TransactionWithRelations | null> {
+  async getTransactionById(
+    transactionId: number
+  ): Promise<TransactionWithRelations | null> {
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
@@ -152,8 +162,8 @@ export class TransactionRepository {
             id: true,
             name: true,
             email: true,
-            points: true
-          }
+            points: true,
+          },
         },
         // Include data event dengan organizer
         event: {
@@ -170,10 +180,10 @@ export class TransactionRepository {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         // Include data coupon
         coupon: {
@@ -181,10 +191,10 @@ export class TransactionRepository {
             id: true,
             code: true,
             discountIdr: true,
-            type: true
-          }
-        }
-      }
+            type: true,
+          },
+        },
+      },
     });
 
     return transaction as TransactionWithRelations | null;
@@ -211,8 +221,8 @@ export class TransactionRepository {
             id: true,
             name: true,
             email: true,
-            points: true
-          }
+            points: true,
+          },
         },
         // Include data event
         event: {
@@ -224,10 +234,10 @@ export class TransactionRepository {
             startsAt: true,
             endsAt: true,
             priceIdr: true,
-            isFree: true
-          }
-        }
-      }
+            isFree: true,
+          },
+        },
+      },
     });
 
     return transaction;
@@ -239,10 +249,13 @@ export class TransactionRepository {
    * @param updateData - Data yang akan diupdate
    * @returns Transaction yang sudah diupdate
    */
-  async updateTransactionStatus(transactionId: number, updateData: {
-    status: TransactionStatus;
-    adminNotes?: string;
-  }) {
+  async updateTransactionStatus(
+    transactionId: number,
+    updateData: {
+      status: TransactionStatus;
+      adminNotes?: string;
+    }
+  ) {
     const transaction = await prisma.transaction.update({
       where: { id: transactionId },
       data: updateData,
@@ -253,8 +266,8 @@ export class TransactionRepository {
             id: true,
             name: true,
             email: true,
-            points: true
-          }
+            points: true,
+          },
         },
         // Include data event
         event: {
@@ -266,10 +279,10 @@ export class TransactionRepository {
             startsAt: true,
             endsAt: true,
             priceIdr: true,
-            isFree: true
-          }
-        }
-      }
+            isFree: true,
+          },
+        },
+      },
     });
 
     return transaction;
@@ -282,7 +295,7 @@ export class TransactionRepository {
    */
   async deleteTransaction(transactionId: number) {
     const transaction = await prisma.transaction.delete({
-      where: { id: transactionId }
+      where: { id: transactionId },
     });
 
     return transaction;
@@ -295,11 +308,15 @@ export class TransactionRepository {
    * @param limit - Limit item per halaman
    * @returns Transactions yang dimiliki oleh user tertentu
    */
-  async getTransactionsByUser(userId: number, page: number = 1, limit: number = 10) {
+  async getTransactionsByUser(
+    userId: number,
+    page: number = 1,
+    limit: number = 10
+  ) {
     return this.getTransactions({
       userId,
       page,
-      limit
+      limit,
     });
   }
 
@@ -310,11 +327,15 @@ export class TransactionRepository {
    * @param limit - Limit item per halaman
    * @returns Transactions untuk event tertentu
    */
-  async getTransactionsByEvent(eventId: number, page: number = 1, limit: number = 10) {
+  async getTransactionsByEvent(
+    eventId: number,
+    page: number = 1,
+    limit: number = 10
+  ) {
     return this.getTransactions({
       eventId,
       page,
-      limit
+      limit,
     });
   }
 
@@ -325,12 +346,44 @@ export class TransactionRepository {
    * @param limit - Limit item per halaman
    * @returns Transactions dengan status tertentu
    */
-  async getTransactionsByStatus(status: TransactionStatus, page: number = 1, limit: number = 10) {
+  async getTransactionsByStatus(
+    status: TransactionStatus,
+    page: number = 1,
+    limit: number = 10
+  ) {
     return this.getTransactions({
       status,
       page,
-      limit
+      limit,
     });
+  }
+  /**
+   * Update status transaction
+   * @param transactionId - ID transaction yang akan diupdate
+   * @param status - Status baru
+   * @returns Transaction yang sudah diupdate
+   */
+
+  /**
+   * Rollback coupon usage
+   * @param couponId - ID coupon
+   * @param couponType - Tipe coupon
+   */
+  public async rollbackCouponUsage(couponId: number, couponType: CouponType) {
+    if (couponType === "ORGANIZER") {
+      await prisma.coupon.update({
+        where: { id: couponId },
+        data: {
+          status: "AVAILABLE",
+          used: { decrement: 1 },
+        },
+      });
+    } else if (couponType === "REFERRAL") {
+      await prisma.coupon.update({
+        where: { id: couponId },
+        data: { status: "AVAILABLE" },
+      });
+    }
   }
 
   /**
@@ -341,11 +394,11 @@ export class TransactionRepository {
    */
   async getTransactionStats(userId?: number, eventId?: number) {
     const whereClause: any = {};
-    
+
     if (userId) {
       whereClause.userId = userId;
     }
-    
+
     if (eventId) {
       whereClause.eventId = eventId;
     }
@@ -355,45 +408,45 @@ export class TransactionRepository {
       totalRevenue,
       pendingTransactions,
       completedTransactions,
-      rejectedTransactions
+      rejectedTransactions,
     ] = await Promise.all([
       // Total transactions
       prisma.transaction.count({ where: whereClause }),
-      
+
       // Total revenue dari transactions yang selesai
       prisma.transaction.aggregate({
         where: {
           ...whereClause,
-          status: TransactionStatus.DONE
+          status: TransactionStatus.DONE,
         },
         _sum: {
-          totalIdr: true
-        }
+          totalIdr: true,
+        },
       }),
-      
+
       // Transactions yang pending
       prisma.transaction.count({
         where: {
           ...whereClause,
-          status: TransactionStatus.WAITING_FOR_PAYMENT
-        }
+          status: TransactionStatus.WAITING_FOR_PAYMENT,
+        },
       }),
-      
+
       // Transactions yang selesai
       prisma.transaction.count({
         where: {
           ...whereClause,
-          status: TransactionStatus.DONE
-        }
+          status: TransactionStatus.DONE,
+        },
       }),
-      
+
       // Transactions yang ditolak
       prisma.transaction.count({
         where: {
           ...whereClause,
-          status: TransactionStatus.REJECTED
-        }
-      })
+          status: TransactionStatus.REJECTED,
+        },
+      }),
     ]);
 
     return {
@@ -401,7 +454,7 @@ export class TransactionRepository {
       totalRevenue: totalRevenue._sum.totalIdr || 0,
       pendingTransactions,
       completedTransactions,
-      rejectedTransactions
+      rejectedTransactions,
     };
   }
 
@@ -418,29 +471,29 @@ export class TransactionRepository {
       where: {
         status: TransactionStatus.WAITING_FOR_PAYMENT,
         createdAt: {
-          lte: twentyFourHoursAgo
-        }
+          lte: twentyFourHoursAgo,
+        },
       },
       include: {
         user: {
           select: {
             id: true,
             name: true,
-            email: true
-          }
+            email: true,
+          },
         },
         event: {
           select: {
             eventId: true,
             title: true,
-            startsAt: true
-          }
-        }
+            startsAt: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'asc'
+        createdAt: "asc",
       },
-      take: limit
+      take: limit,
     });
 
     return transactions;

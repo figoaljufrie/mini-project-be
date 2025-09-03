@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction Declined</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px;">
+    <table width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <table width="600" cellspacing="0" cellpadding="20" style="background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td>
+                            <h2 style="color: #dc3545; text-align: center;">Transaction Declined</h2>
+                            <p>Hello {{organizerName}},</p>
+                            <p>We're sorry to inform you that your recent transaction could not be processed.</p>
+                            
+                            <table width="100%" style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                <tr>
+                                    <td><strong>Transaction ID:</strong></td>
+                                    <td>{{transactionId}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Event:</strong></td>
+                                    <td>{{eventName}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Amount:</strong></td>
+                                    <td>{{amount}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date Attempted:</strong></td>
+                                    <td>{{transactionDate}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Reason:</strong></td>
+                                    <td>{{reason}}</td>
+                                </tr>
+                            </table>
+                            
+                            <p>Please verify your payment information and try again, or contact your financial institution for more details.</p>
+                            
+                            <p style="text-align: center; margin: 30px 0;">
+                                <a href="{{retryLink}}" 
+                                   style="background: #007bff; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                                    Retry Transaction
+                                </a>
+                            </p>
+                            
+                            <p>If you believe this is an error, please contact our support team immediately.</p>
+                            
+                            <p>Best regards,<br/>The Event Team</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

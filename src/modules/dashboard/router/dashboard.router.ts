@@ -58,6 +58,13 @@ export class DashboardRouter {
       this.dashboardController.getTotalEvents
     );
 
+    this.router.patch(
+      "/dashboard/transactions/:transactionId/status",
+      this.authMiddleware.authenticate,
+      this.rbacMiddleware.checkRole([$Enums.Role.ORGANIZER]),
+      this.dashboardController.updateTransactionStatus
+    );
+
     // Example if you want tickets later
     // this.router.get(
     //   "/dashboard/tickets",

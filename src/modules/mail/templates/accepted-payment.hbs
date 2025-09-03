@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction Accepted</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px;">
+    <table width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <table width="600" cellspacing="0" cellpadding="20" style="background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td>
+                            <h2 style="color: #28a745; text-align: center;">Transaction Approved</h2>
+                            <p>Hello {{organizerName}},</p>
+                            <p>We're pleased to inform you that your transaction has been successfully processed.</p>
+                            
+                            <table width="100%" style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                <tr>
+                                    <td><strong>Transaction ID:</strong></td>
+                                    <td>{{transactionId}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Event:</strong></td>
+                                    <td>{{eventName}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Amount:</strong></td>
+                                    <td>{{amount}}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date:</strong></td>
+                                    <td>{{transactionDate}}</td>
+                                </tr>
+                            </table>
+                            
+                            <p>The funds have been transferred to your account and should be available within 2-3 business days.</p>
+                            
+                            <p style="text-align: center; margin: 30px 0;">
+                                <a href="{{dashboardLink}}" 
+                                   style="background: #28a745; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                                    View in Dashboard
+                                </a>
+                            </p>
+                            
+                            <p>If you have any questions, please contact our support team.</p>
+                            
+                            <p>Best regards,<br/>The Event Team</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

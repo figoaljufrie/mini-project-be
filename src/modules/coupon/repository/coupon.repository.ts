@@ -141,4 +141,27 @@ export class CouponRepository {
       },
     });
   }
+
+  public async rollbackCouponUsage(couponId: number) {
+    const coupon = await prisma.coupon.findUnique({ where: { id: couponId } });
+    if (!coupon) throw new Error("Coupon not found");
+
+    if (coupon.used === null || coupon.used === 0) {
+      throw new Error("Coupon usage cannot be rolled back");
+    }
+
+    const newUsed = coupon.used - 1;
+    const newStatus =
+      newUsed < (coupon.quantity ?? Infinity)
+        ? CouponStatus.AVAILABLE
+        : coupon.status;
+
+    return prisma.coupon.update({
+      where: { id: couponId },
+      data: {
+        used: newUsed,
+        status: newStatus,
+      },
+    });
+  }
 }

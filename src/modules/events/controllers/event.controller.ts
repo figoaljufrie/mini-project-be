@@ -22,7 +22,12 @@ export const getEvents = async (req: Request, res: Response) => {
     return res.json(events);
   } catch (error: any) {
     console.error("Error in getEvents controller:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    handleError(
+            res,
+            "Failed to get event",
+            500,
+            (error as Error).message
+          );
   }
 };
 
@@ -36,7 +41,12 @@ export const getEventById = async (req: Request, res: Response) => {
     }
     return res.json(event);
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+     handleError(
+            res,
+            "Failed to get event by id",
+            500,
+            (error as Error).message
+          );
   }
 };
 
@@ -47,16 +57,18 @@ export const getOrganizerEvents = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { page, limit } = req.query;
-    const data = await eventService.getEventsByOrganizer(
-      userId,
-      Number(page) || 1,
-      Number(limit) || 20
-    );
-
-    return res.json(data.data);
+    // Call the service to get events
+    const data = await eventService.getEventsByOrganizer(userId);
+    return res.json(data); // front-end gets exactly what it expects
   } catch (error) {
-    return handleError(res, "Failed to get organizer events.", 500, (error as Error).message);
+    console.error("Error in getOrganizerEvents:", error);
+    handleError(
+            res,
+            "Failed to get Event for organizer",
+            500,
+            (error as Error).message
+          );
+
   }
 };
 
@@ -98,6 +110,12 @@ export const createEvent = async (req: Request, res: Response) => {
 
     return res.status(201).json(event);
   } catch (error) {
-    return  handleError(res, "Failed to login.", 500, (error as Error).message);
+    handleError(
+            res,
+            "Failed to create event",
+            500,
+            (error as Error).message
+          );
+
   }
 };

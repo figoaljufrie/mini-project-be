@@ -404,7 +404,17 @@ export class EventRepository {
    * @returns Events yang dibuat oleh organizer tertentu
    */
   async getEventsByOrganizer(organizerId: number, page = 1, limit = 10) {
-    return this.getEvents({ organizerId, page, limit, upcomingOnly: false });
+    try {
+      return await this.getEvents({
+        organizerId,
+        page,
+        limit,
+        upcomingOnly: false,
+      });
+    } catch (err) {
+      console.error("Prisma query error:", err);
+      throw err;
+    }
   }
 
   /**

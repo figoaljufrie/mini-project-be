@@ -1,15 +1,24 @@
-import { TransactionRepository } from "../repository/transaction.repository";
-import { EventRepository } from "../../events/repository/event.repository";
-import { UserService } from "../../users/services/user.service";
+import { prisma } from "../../../utils/prisma";
 import { CouponService } from "../../coupon/services/coupon.service";
+import { EventRepository } from "../../events/repository/event.repository";
+import { MailService } from "../../mail/mail.service";
+import { UserService } from "../../users/services/user.service";
 import {
   CreateTransactionData,
   CreateTransactionResponse,
-  TransactionStatus,
-  SearchTransactionQuery,
-  UpdateTransactionStatusData,
   PaginatedTransactionResponse,
+  SearchTransactionQuery,
+  TransactionStatus,
+  UpdateTransactionStatusData,
 } from "../dto/create-transaction.dto";
+import { TransactionRepository } from "../repository/transaction.repository";
+
+interface TransactionEmailContext {
+  userName: string;
+  eventTitle: string;
+  total?: number;
+  additionalInfo?: string;
+}
 
 // Service class untuk mengelola business logic transaction
 export class TransactionService {
@@ -17,12 +26,14 @@ export class TransactionService {
   private eventRepository: EventRepository;
   private userService: UserService;
   private couponService: CouponService = new CouponService();
+  private mailService: MailService;
 
   constructor() {
     this.transactionRepository = new TransactionRepository();
     this.eventRepository = new EventRepository();
     this.userService = new UserService();
     this.couponService = new CouponService();
+    this.mailService = new MailService();
   }
 
   /**
@@ -60,8 +71,6 @@ export class TransactionService {
       if (couponId) {
         const coupon = await this.couponService.findById(couponId);
         if (!coupon) throw new Error("Coupon tidak ditemukan");
-
-        totalPrice = Math.max(0, totalPrice - coupon.discountIdr);
 
         totalPrice = Math.max(0, totalPrice - coupon.discountIdr);
 
@@ -162,6 +171,30 @@ export class TransactionService {
     }
   }
 
+   async getTransactionsByOrganizer(organizerId: number, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        event: { organizerId }
+      },
+      include: {
+        user: true,
+        event: true,
+        coupon: true
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit
+    });
+
+    const total = await prisma.transaction.count({
+      where: { event: { organizerId } }
+    });
+
+    return { transactions, total, page, limit };
+  }
+
   /**
    * Mendapatkan transaction berdasarkan ID
    * @param transactionId - ID transaction yang dicari
@@ -224,8 +257,47 @@ export class TransactionService {
 
       // Jika status berubah ke DONE, tambahkan points ke user (opsional)
       if (updateData.status === TransactionStatus.DONE) {
-        // TODO: Implement points reward logic
-        // await this.userService.addPoints(transaction.userId, 10); // Reward 10 points
+        const context: TransactionEmailContext = {
+          userName: transaction.user.name,
+          eventTitle: transaction.event.title,
+          total: transaction.totalIdr,
+        };
+
+        await this.mailService.sendMail(
+          transaction.user.email,
+          "Congratulations! Your ticket purchase is confirmed!",
+          "transaction-accepted", // name of your hbs template
+          context
+        );
+
+        // Optional: reward points logic
+      } else if (updateData.status === TransactionStatus.REJECTED) {
+        const context: TransactionEmailContext = {
+          userName: transaction.user.name,
+          eventTitle: transaction.event.title,
+          additionalInfo:
+            "Your payment has been rejected. Seats have been restored.",
+        };
+
+        await this.mailService.sendMail(
+          transaction.user.email,
+          "Transaction Rejected",
+          "transaction-rejected", // name of your hbs template
+          context
+        );
+
+        // Rollback event seat
+       const event = await this.eventRepository.getEventById(transaction.eventId);
+  if (event) {
+    await this.eventRepository.updateEvent(transaction.eventId, {
+      quantity: event.quantity + 1,
+    });
+  }
+
+  // Rollback coupon usage if applied
+  if (transaction.couponId && transaction.coupon?.type) {
+    await this.couponService.rollbackCouponUsage(transaction.couponId);
+  }
       }
 
       return updatedTransaction;

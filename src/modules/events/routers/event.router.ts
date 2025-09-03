@@ -16,7 +16,7 @@ EventRouter.get("/get-event", getEvents);
 // GET /api/events/:id - Mendapatkan detail event berdasarkan ID
 // Path parameter: id (event ID)
 // Response: Event detail dengan promotions, reviews, dan organizer info
-EventRouter.get("/:id", getEventById);
+EventRouter.get("/get-eventby/:id", getEventById);
 
 // ========================================
 // EVENT MANAGEMENT ENDPOINTS (PROTECTED)

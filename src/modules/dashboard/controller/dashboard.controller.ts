@@ -1,28 +1,21 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { handleSuccess } from "../../../helpers/handleSuccess";
 import { handleError } from "../../../helpers/handleError";
 import { DashboardService } from "../services/dashboard.service";
-import { Result } from "express-validator";
 
 export class DashboardController {
-  dashboardService: DashboardService;
+  private dashboardService: DashboardService;
 
   constructor() {
     this.dashboardService = new DashboardService();
 
     this.getTransaction = this.getTransaction.bind(this);
-
     this.getTotalRevenue = this.getTotalRevenue.bind(this);
-
     this.getTotalAttendees = this.getTotalAttendees.bind(this);
-
     this.getTransactionById = this.getTransactionById.bind(this);
-
     this.getTotalVouchers = this.getTotalVouchers.bind(this);
-
     this.getTotalEvents = this.getTotalEvents.bind(this);
-
-    // this.getTotalTickets = this.getTotalTickets.bind(this);
+    this.updateTransactionStatus = this.updateTransactionStatus.bind(this);
   }
 
   public async getTransaction(req: Request, res: Response) {
@@ -31,7 +24,7 @@ export class DashboardController {
       const user = (req as any).user;
 
       const transactions = await this.dashboardService.getTransaction(
-        user.id, // organizerId here!
+        user.id,
         eventId ? Number(eventId) : undefined,
         status ? String(status) : undefined
       );
@@ -55,9 +48,7 @@ export class DashboardController {
   public async getTotalRevenue(req: Request, res: Response) {
     try {
       const user = (req as any).user;
-      const revenues = await this.dashboardService.getTotalrevenue(
-        Number(user.id)
-      );
+      const revenues = await this.dashboardService.getTotalrevenue(user.id);
       handleSuccess(res, "Successfully get total revenues", revenues, 200);
     } catch (error) {
       handleError(
@@ -72,7 +63,6 @@ export class DashboardController {
   public async getTotalAttendees(req: Request, res: Response) {
     try {
       const user = (req as any).user;
-
       const attendees = await this.dashboardService.getTotalAttendees(user.id);
       handleSuccess(res, "Successfully get all attendees", attendees, 200);
     } catch (error) {
@@ -114,11 +104,10 @@ export class DashboardController {
   public async getTotalVouchers(req: Request, res: Response) {
     try {
       const user = (req as any).user;
-
       const totalVouchers = await this.dashboardService.getTotalVoucher(
         user.id
       );
-      handleSuccess(res, "successfully get Total Vouchers", totalVouchers, 200);
+      handleSuccess(res, "Successfully get Total Vouchers", totalVouchers, 200);
     } catch (error) {
       handleError(
         res,
@@ -132,9 +121,8 @@ export class DashboardController {
   public async getTotalEvents(req: Request, res: Response) {
     try {
       const user = (req as any).user;
-
       const totalEvents = await this.dashboardService.getTotalEvents(user.id);
-      handleSuccess(res, "successfully get Total Events", totalEvents, 200);
+      handleSuccess(res, "Successfully get Total Events", totalEvents, 200);
     } catch (error) {
       handleError(
         res,
@@ -145,22 +133,33 @@ export class DashboardController {
     }
   }
 
-  //Nunggu mas Rafli:
-  // public async getTotalTickets(req: Request, res: Response) {
-  //   try {
-  //     const { organizerId } = req.body;
-  //     const totalTickets = await this.dashboardService.getTotalTickets(
-  //       organizerId
-  //     );
+  // Organizer-only: update transaction status
+  public async updateTransactionStatus(req: Request, res: Response) {
+    try {
+      const { transactionId } = req.params;
+      const updateData = req.body;
+      const user = (req as any).user; // assuming user info is attached
 
-  //     handleSuccess(res, "successfully get Total Tickets", totalTickets, 200);
-  //   } catch (error) {
-  //     handleError(
-  //       res,
-  //       "Failed to get Total Tickets",
-  //       500,
-  //       (error as Error).message
-  //     );
-  //   }
-  // }
+      const updatedTransaction =
+        await this.dashboardService.updateTransactionStatus(
+          user.id, // <--- organizerId
+          Number(transactionId),
+          updateData
+        );
+
+      handleSuccess(
+        res,
+        "Transaction status updated successfully",
+        updatedTransaction,
+        200
+      );
+    } catch (error) {
+      handleError(
+        res,
+        "Failed to update transaction status",
+        500,
+        (error as Error).message
+      );
+    }
+  }
 }

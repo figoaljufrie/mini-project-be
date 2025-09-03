@@ -47,6 +47,9 @@ model User {
   Transactions       Transaction[]
   events             Event[] // events yang dibuat oleh organizer
   reviews            Review[] // reviews yang dibuat oleh user
+
+  avatarUrl      String?
+  avatarPublicId String?
 }
 
 model Coupon {
@@ -84,13 +87,15 @@ model PointTransactions {
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  eventId   Int
-  status    TxStatus
-  totalIdr  Int
-  createdAt DateTime @default(now())
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id])
+  eventId              Int
+  status               TxStatus
+  totalIdr             Int
+  createdAt            DateTime @default(now())
+  paymentProofUrl      String?
+  paymentProofPublicId String?
 
   couponId Int?
   coupon   Coupon? @relation(fields: [couponId], references: [id])
@@ -115,6 +120,9 @@ model Event {
   ticketTypes String? // misalnya VIP, Regular, dsb.
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  thumbnailUrl      String?
+  thumbnailPublicId String?
 
   organizer    User          @relation(fields: [organizerId], references: [id])
   transactions Transaction[]

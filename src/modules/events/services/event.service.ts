@@ -1,6 +1,10 @@
 // Import Prisma client untuk akses database
 import { prisma } from "../../../utils/prisma";
-import { EventRepository, EventWithRelations, PaginatedResponse } from "../repository/event.repository";
+import {
+  EventRepository,
+  EventWithRelations,
+  PaginatedResponse,
+} from "../repository/event.repository";
 
 // Interface untuk parameter pencarian event
 interface GetEventsParams {
@@ -25,6 +29,27 @@ interface CreateEventParams {
   organizerId: number; // ID user yang membuat event (organizer)
 }
 
+export interface FrontendEvent {
+  eventId: number;
+  title: string;
+  category: string;
+  location: string;
+  startsAt: string; // string, because front-end expects ISO
+  endsAt: string;
+  quantity: number;
+  priceIdr: number;
+  isFree: boolean;
+  description: string;
+  ticketTypes: string;
+  organizer: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  thumbnailUrl: string;
+  thumbnailPublicId: string;
+}
+
 // Service class untuk mengelola operasi event
 export class EventService {
   /**
@@ -36,7 +61,7 @@ export class EventService {
   eventRepository = new EventRepository();
 
   async getEvents(params: GetEventsParams) {
-    const { category, location, searchQuery,upcomingOnly = false } = params;
+    const { category, location, searchQuery, upcomingOnly = false } = params;
 
     // Query database untuk mencari event yang sesuai kriteria
     return await prisma.event.findMany({
@@ -77,32 +102,56 @@ export class EventService {
    * @returns Event detail dengan semua relasi yang diperlukan
    */
   async getEventById(id: number) {
-    // Query database untuk mendapatkan event berdasarkan ID
-    return await prisma.event.findUnique({
-      where: { eventId: id },
-      include: {
-        // Include data promotions untuk event
-        promotions: true,
-        // Include data reviews/rating event
-        reviews: true,
-        // Include data organizer (user yang membuat event)
-        organizer: {
-          select: {
-            id: true, // ID organizer
-            name: true, // Nama organizer
-            email: true, // Email organizer
-          },
+    try {
+      return await prisma.event.findUnique({
+        where: { eventId: id },
+        include: {
+          promotions: true,
+          reviews: true,
+          organizer: { select: { id: true, name: true, email: true } },
         },
-      },
-    });
+      });
+    } catch (error) {
+      console.error("Error in getEventById:", error);
+      throw new Error("Failed to fetch event by id");
+    }
   }
 
-  async getEventsByOrganizer(
-    organizerId: number,
-    page: number = 1,
-    limit: number = 20
-  ): Promise<PaginatedResponse<EventWithRelations>> {
-    return this.eventRepository.getEventsByOrganizer(organizerId, page, limit);
+  async getEventsByOrganizer(organizerId: number): Promise<FrontendEvent[]> {
+    try {
+      const events = await prisma.event.findMany({
+        where: { organizerId },
+        orderBy: { startsAt: "asc" },
+        include: {
+          organizer: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      // Map ke format FrontendEvent
+      return events.map((e) => ({
+        eventId: e.eventId,
+        title: e.title,
+        category: e.category,
+        location: e.location,
+        startsAt: e.startsAt.toISOString(),
+        endsAt: e.endsAt.toISOString(),
+        quantity: e.quantity,
+        priceIdr: e.priceIdr,
+        isFree: e.isFree,
+        description: e.description,
+        ticketTypes: e.ticketTypes ?? "",
+        organizer: {
+          id: e.organizer.id,
+          name: e.organizer.name,
+          email: e.organizer.email,
+        },
+        thumbnailUrl: e.thumbnailUrl ?? "",
+        thumbnailPublicId: e.thumbnailPublicId ?? "",
+      }));
+    } catch (error) {
+      console.error("Error in getEventsByOrganizer:", error);
+      throw new Error("Failed to fetch organizer events");
+    }
   }
 
   /**
