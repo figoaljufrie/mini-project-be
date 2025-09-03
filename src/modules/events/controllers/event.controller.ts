@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { EventService } from "../services/event.service";
+import { handleError } from "../../../helpers/handleError";
 
 const eventService = new EventService();
 
@@ -41,7 +42,7 @@ export const getEventById = async (req: Request, res: Response) => {
 
 export const getOrganizerEvents = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (res.locals.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -53,9 +54,9 @@ export const getOrganizerEvents = async (req: Request, res: Response) => {
       Number(limit) || 20
     );
 
-    return res.json(data.data); // frontend expects array
+    return res.json(data.data);
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    return handleError(res, "Failed to get organizer events.", 500, (error as Error).message);
   }
 };
 
@@ -97,6 +98,6 @@ export const createEvent = async (req: Request, res: Response) => {
 
     return res.status(201).json(event);
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    return  handleError(res, "Failed to login.", 500, (error as Error).message);
   }
 };
