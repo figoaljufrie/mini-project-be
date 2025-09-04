@@ -99,7 +99,7 @@ export class UserRouter {
 
     this.router.post(
       "/auth/forgot-password",
-      validateEmail,
+      // validateEmail,
       this.userController.forgotPassword
     );
 

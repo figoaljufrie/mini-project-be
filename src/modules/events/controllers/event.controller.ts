@@ -52,7 +52,7 @@ export const getEventById = async (req: Request, res: Response) => {
 
 export const getOrganizerEvents = async (req: Request, res: Response) => {
   try {
-    const userId = (res.locals.user as any)?.id;
+    const userId = (req as any).user?.id;;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
