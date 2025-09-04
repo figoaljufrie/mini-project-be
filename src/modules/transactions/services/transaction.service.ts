@@ -12,13 +12,7 @@ import {
   UpdateTransactionStatusData,
 } from "../dto/create-transaction.dto";
 import { TransactionRepository } from "../repository/transaction.repository";
-
-interface TransactionEmailContext {
-  userName: string;
-  eventTitle: string;
-  total?: number;
-  additionalInfo?: string;
-}
+import { TransactionEmailContext } from "../../mail/templates/types/email";
 
 // Service class untuk mengelola business logic transaction
 export class TransactionService {
@@ -258,9 +252,13 @@ export class TransactionService {
       // Jika status berubah ke DONE, tambahkan points ke user (opsional)
       if (updateData.status === TransactionStatus.DONE) {
         const context: TransactionEmailContext = {
-          userName: transaction.user.name,
-          eventTitle: transaction.event.title,
-          total: transaction.totalIdr,
+          organizerName: transaction.event?.organizer?.name || "Organizer",
+      transactionId: transaction.id,
+      eventTitle: transaction.event?.title || "Event",
+      totalIdr: transaction.totalIdr,
+      transactionDate: transaction.createdAt.toISOString(), // format if needed
+      dashboardLink: `${process.env.FRONTEND_URL}/dashboard/transactions/${transaction.id}`,
+      retryLink: `${process.env.FRONTEND_URL}/checkout/${transaction.eventId}`,
         };
 
         await this.mailService.sendMail(
@@ -273,10 +271,13 @@ export class TransactionService {
         // Optional: reward points logic
       } else if (updateData.status === TransactionStatus.REJECTED) {
         const context: TransactionEmailContext = {
-          userName: transaction.user.name,
-          eventTitle: transaction.event.title,
-          additionalInfo:
-            "Your payment has been rejected. Seats have been restored.",
+          organizerName: transaction.event?.organizer?.name || "Organizer",
+          transactionId: transaction.id,
+          eventTitle: transaction.event?.title || "Event",
+          totalIdr: transaction.totalIdr,
+          transactionDate: transaction.createdAt.toISOString(), // format if needed
+          dashboardLink: `${process.env.FRONTEND_URL}/dashboard/transactions/${transaction.id}`,
+          retryLink: `${process.env.FRONTEND_URL}/checkout/${transaction.eventId}`,
         };
 
         await this.mailService.sendMail(
